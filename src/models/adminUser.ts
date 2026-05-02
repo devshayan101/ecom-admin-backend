@@ -18,6 +18,5 @@ const adminUserSchema = new Schema<IAdminUser>({
     is_active: { type: Boolean, default: true },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-adminUserSchema.index({ email: 1 }, { unique: true });
 
 export const AdminUserModel = mongoose.model<IAdminUser>('AdminUser', adminUserSchema);

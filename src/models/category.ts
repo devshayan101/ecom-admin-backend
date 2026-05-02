@@ -28,6 +28,5 @@ const categorySchema = new Schema<ICategory>({
     attribute_schema: [attributeSchemaItem],
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-categorySchema.index({ slug: 1 }, { unique: true });
 
 export const CategoryModel = mongoose.model<ICategory>('Category', categorySchema);

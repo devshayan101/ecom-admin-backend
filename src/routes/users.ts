@@ -15,6 +15,13 @@ users.get('/', async (c) => {
     return c.json({ items: users });
 });
 
+users.get('/:id', async (c) => {
+    const id = c.req.param('id');
+    const user = await AdminUserModel.findById(id, { password_hash: 0 }).lean();
+    if (!user) throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, 'User not found');
+    return c.json(user);
+});
+
 users.post('/', async (c) => {
     const { name, email, password, role } = await c.req.json();
     const hash = await bcrypt.hash(password, 12);

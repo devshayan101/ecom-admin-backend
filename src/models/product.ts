@@ -22,6 +22,7 @@ export interface IProduct extends Document {
 const variantSchema = new Schema<IVariant>({
     sku: { type: String, required: true },
     price: { type: Number, required: true, min: 0 },
+    image: { type: String },
     attributes: { type: Schema.Types.Mixed, default: {} },
 }, { _id: true });
 

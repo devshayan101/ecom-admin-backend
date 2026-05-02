@@ -7,6 +7,8 @@
         "build": "tsc",
         "start": "node dist/index.js",
         "test": "jest --forceExit --detectOpenHandles",
+        "seed:mock": "ts-node --require dotenv/config src/config/mockSeed.ts",
+        "seed:mock:clean": "ts-node --require dotenv/config src/config/mockSeed.ts --clean",
         "lint": "tsc --noEmit"
     },
     "dependencies": {
@@ -29,6 +31,7 @@
         "zod": "^3.24.0"
     },
     "devDependencies": {
+        "@faker-js/faker": "^10.4.0",
         "@types/bcrypt": "^5.0.2",
         "@types/jest": "^29.5.14",
         "@types/jsonwebtoken": "^9.0.7",

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { logger } from 'hono/logger';
 import { serve } from '@hono/node-server';
 import { config } from './config/secrets';
 import { connectMongo } from './utils/mongoClient';
@@ -30,7 +31,19 @@ import { startPasswordResetEmailWorker } from './workers/passwordResetEmail';
 import { startPaymentExpiryWorker } from './workers/paymentExpiry';
 import { startOrphanImageCleanupWorker } from './workers/orphanImageCleanup';
 
+import { cors } from 'hono/cors';
+
 const app = new Hono();
+
+app.use('*', logger());
+
+// Enable CORS
+app.use('*', cors({
+    origin: ['http://localhost:3000', 'http://localhost:3002'],
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Mount routes
 app.route('/auth', authRoutes);

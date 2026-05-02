@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, GetObjectTaggingCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { config } from '../config/secrets';
+import { AppError, ErrorCodes } from './errors';
 
 let s3: S3Client;
 
@@ -24,7 +25,7 @@ export async function getPresignedUploadUrl(
     uploadSessionId: string
 ): Promise<string> {
     if (!ALLOWED_MIMES.includes(contentType)) {
-        throw new Error(`Unsupported MIME type: ${contentType}`);
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, `Unsupported MIME type: ${contentType}`, 'content_type');
     }
     const command = new PutObjectCommand({
         Bucket: config.s3BucketName,
