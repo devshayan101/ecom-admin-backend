@@ -39,7 +39,7 @@ app.use('*', logger());
 
 // Enable CORS
 app.use('*', cors({
-    origin: ['http://localhost:3000', 'http://localhost:3002'],
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],

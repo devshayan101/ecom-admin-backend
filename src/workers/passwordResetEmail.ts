@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import { config } from '../config/secrets';
-import { sendEmail } from '../utils/sesClient';
+import { sendEmail } from '../utils/resendClient';
 
 const connection = { url: config.redisUrl };
 

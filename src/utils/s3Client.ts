@@ -7,12 +7,15 @@ let s3: S3Client;
 
 function getS3(): S3Client {
     if (!s3) {
-        const opts: any = { region: config.awsRegion };
-        if (config.awsEndpointUrl) {
-            opts.endpoint = config.awsEndpointUrl;
-            opts.forcePathStyle = true;
-        }
-        s3 = new S3Client(opts);
+        s3 = new S3Client({
+            region: 'auto',
+            endpoint: `https://${config.r2AccountId}.r2.cloudflarestorage.com`,
+            credentials: {
+                accessKeyId: config.r2AccessKeyId,
+                secretAccessKey: config.r2SecretAccessKey,
+            },
+            forcePathStyle: true,
+        });
     }
     return s3;
 }
@@ -28,7 +31,7 @@ export async function getPresignedUploadUrl(
         throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, `Unsupported MIME type: ${contentType}`, 'content_type');
     }
     const command = new PutObjectCommand({
-        Bucket: config.s3BucketName,
+        Bucket: config.r2BucketName,
         Key: `${config.s3PublicPrefix}/${key}`,
         ContentType: contentType,
         Tagging: `upload_session_id=${uploadSessionId}&created_at=${new Date().toISOString()}`,
@@ -38,14 +41,14 @@ export async function getPresignedUploadUrl(
 
 export async function deleteS3Object(key: string): Promise<void> {
     await getS3().send(new DeleteObjectCommand({
-        Bucket: config.s3BucketName,
+        Bucket: config.r2BucketName,
         Key: key,
     }));
 }
 
 export async function listS3Objects(prefix: string) {
     const result = await getS3().send(new ListObjectsV2Command({
-        Bucket: config.s3BucketName,
+        Bucket: config.r2BucketName,
         Prefix: prefix,
     }));
     return result.Contents || [];
@@ -53,7 +56,7 @@ export async function listS3Objects(prefix: string) {
 
 export async function getObjectTags(key: string) {
     const result = await getS3().send(new GetObjectTaggingCommand({
-        Bucket: config.s3BucketName,
+        Bucket: config.r2BucketName,
         Key: key,
     }));
     return result.TagSet || [];

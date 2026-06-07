@@ -2,7 +2,7 @@ import { Worker } from 'bullmq';
 import { config } from '../config/secrets';
 import { InventoryModel } from '../models/inventory';
 import { getRedis } from '../utils/redisClient';
-import { sendEmail } from '../utils/sesClient';
+import { sendEmail } from '../utils/resendClient';
 
 const connection = { url: config.redisUrl };
 

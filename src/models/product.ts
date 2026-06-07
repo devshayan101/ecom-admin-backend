@@ -4,6 +4,7 @@ export interface IVariant {
     _id: mongoose.Types.ObjectId;
     sku: string;
     price: number;
+    image?: string;
     attributes: Record<string, any>;
 }
 

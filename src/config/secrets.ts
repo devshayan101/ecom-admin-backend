@@ -25,16 +25,17 @@ export const config = {
     // Timezone
     businessTimezone: process.env.BUSINESS_TIMEZONE || 'UTC',
 
-    // AWS
-    awsRegion: process.env.AWS_REGION || 'us-east-1',
-    awsEndpointUrl: process.env.AWS_ENDPOINT_URL,
+    // Cloudflare R2
+    r2AccountId: process.env.R2_ACCOUNT_ID || '',
+    r2AccessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+    r2BucketName: process.env.R2_BUCKET_NAME || '',
+    r2PublicUrl: process.env.R2_PUBLIC_URL || 'http://localhost:3002/public',
+    s3PublicPrefix: process.env.R2_PUBLIC_PREFIX || 'product-images',
 
-    // S3
-    s3BucketName: process.env.S3_BUCKET_NAME || '',
-    s3PublicPrefix: process.env.S3_PUBLIC_PREFIX || 'product-images',
-
-    // SES
-    sesFromAddress: process.env.SES_FROM_ADDRESS || '',
+    // Resend
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    resendFromAddress: process.env.RESEND_FROM_ADDRESS || '',
     adminEmailAlert: process.env.ADMIN_EMAIL_ALERT || '',
 
     // Seed

@@ -112,7 +112,7 @@ export async function generateUploadUrl(contentType: string) {
     const key = `${uuidv4()}.${contentType.split('/')[1]}`;
     const uploadSessionId = uuidv4();
     const url = await getPresignedUploadUrl(key, contentType, uploadSessionId);
-    const objectUrl = `https://s3.${config.awsRegion}.amazonaws.com/${config.s3BucketName}/${config.s3PublicPrefix}/${key}`;
+    const objectUrl = `${config.r2PublicUrl}/${config.s3PublicPrefix}/${key}`;
     return { uploadUrl: url, objectUrl };
 }
 

@@ -26,7 +26,7 @@ export function startOrphanImageCleanupWorker() {
                 if (age < ONE_DAY_MS) continue;
 
                 // Check if any product references this URL
-                const url = `https://s3.${config.awsRegion}.amazonaws.com/${config.s3BucketName}/${obj.Key}`;
+                const url = `${config.r2PublicUrl}/${obj.Key}`;
                 const referenced = await ProductModel.exists({ images: url });
                 if (referenced) continue;
 

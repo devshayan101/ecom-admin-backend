@@ -211,7 +211,7 @@ async function seedProducts(categories: ICategory[]): Promise<IProduct[]> {
             description: faker.commerce.productDescription(),
             category_id: category._id,
             tags: faker.helpers.arrayElements(['new-arrival','best-seller','on-sale'], { min: 0, max: 2 }),
-            images: [faker.image.urlPicsum({ width: 800, height: 600 })],
+	            images: [faker.image.urlPicsumPhotos()],
             status: 'active',
             variants: [variant],
             created_at: faker.date.past({ years: 1 }),
@@ -226,27 +226,23 @@ async function seedProducts(categories: ICategory[]): Promise<IProduct[]> {
 
 async function seedInventory(products: IProduct[]) {
     console.log('Seeding inventory...');
-    let count = 0;
+    const docs = [];
     for (const product of products) {
         for (const variant of product.variants) {
-            await InventoryModel.findOneAndUpdate(
-                { _id: variant._id },
-                {
-                    _id: variant._id,
-                    product_id: product._id,
-                    sku: variant.sku,
-                    stock: faker.number.int({ min: 0, max: 500 }),
-                    reserved: 0,
-                    low_stock_threshold: faker.number.int({ min: 5, max: 50 }),
-                    manual_adjustment_log: [],
-                    updated_at: new Date(),
-                },
-                { upsert: true, new: true }
-            );
-            count++;
+            docs.push({
+                _id: variant._id,
+                product_id: product._id,
+                sku: variant.sku,
+                stock: faker.number.int({ min: 0, max: 500 }),
+                reserved: 0,
+                low_stock_threshold: faker.number.int({ min: 5, max: 50 }),
+                manual_adjustment_log: [],
+                updated_at: new Date(),
+            });
         }
     }
-    console.log(`Seeded ${count} inventory entries`);
+    await InventoryModel.collection.insertMany(docs);
+    console.log(`Seeded ${docs.length} inventory entries`);
 }
 
 async function seedCustomers(): Promise<any[]> {
@@ -255,7 +251,7 @@ async function seedCustomers(): Promise<any[]> {
     for (let i = 0; i < 30; i++) {
         const customer = await CustomerModel.create({
             name: faker.person.fullName(),
-            email: faker.internet.email({ uniqueSuffix: String(i) }),
+	            email: faker.internet.email().toLowerCase(),
             phone: faker.phone.number({ style: 'international' }),
             is_active: faker.datatype.boolean({ probability: 0.9 }),
             address: {
