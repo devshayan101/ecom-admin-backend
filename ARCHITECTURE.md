@@ -17,7 +17,7 @@ Defines the structure of the data using Mongoose schemas for MongoDB. It ensures
 ### 4. Worker Layer (`src/workers/`)
 Processes asynchronous background jobs using BullMQ. Key tasks include:
 - Generating low-stock alerts.
-- Sending transactional emails via SES.
+- Sending transactional emails via Resend.
 - Processing Stripe payment confirmations.
 - Periodic dashboard metric calculations.
 
@@ -33,8 +33,8 @@ BullMQ manages job scheduling and execution via Redis. Each worker is dedicated 
 
 ### Integrations
 - **Stripe**: Handles order payments. Webhooks update the order status asychronously.
-- **AWS S3**: Used for product image storage with pre-signed upload URLs for security.
-- **AWS SES**: Sends transactional emails for order confirmations and password resets.
+- **Cloudflare R2**: Used for product image storage with pre-signed upload URLs for security (using S3-compatible API).
+- **Resend**: Sends transactional emails for order confirmations and password resets.
 - **AWS Secrets Manager**: Manages sensitive configuration in production environments.
 
 ### Testing

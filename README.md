@@ -9,8 +9,8 @@ A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, an
 - **Background Tasks**: BullMQ (with Redis)
 - **Service Integration**:
   - **Payments**: Stripe
-  - **Storage**: AWS S3
-  - **Email**: AWS SES
+  - **Storage**: Cloudflare R2
+  - **Email**: Resend
   - **Secrets**: AWS Secrets Manager
 - **Validation**: Zod
 - **Authentication**: JWT (RS256)
