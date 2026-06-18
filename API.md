@@ -321,6 +321,67 @@ Get a specific audit log detail.
 
 ---
 
+## Reviews
+Endpoints for managing customer reviews. Requires authentication.
+
+#### `GET /reviews`
+List all customer reviews with pagination and status/rating filters.
+- **Permissions**: `reviews:read`
+- **Query Params**: `limit`, `cursor`, `status` (`pending`, `approved`, `rejected`), `rating` (`1` to `5`).
+- **Response**: `200 OK` with paginated reviews items.
+
+#### `PATCH /reviews/:id`
+Approve, reject, or reset a review's moderation status.
+- **Permissions**: `reviews:write`
+- **Request Body**:
+  ```json
+  { "status": "approved" }
+  ```
+- **Response**: `200 OK` with the updated review. Recalculates product rating aggregates if status transitions to or from approved.
+
+#### `POST /reviews/:id/reply`
+Post or edit an administrative reply response to a customer review.
+- **Permissions**: `reviews:write`
+- **Request Body**:
+  ```json
+  { "text": "Thank you for the review!" }
+  ```
+- **Response**: `200 OK` with the updated review including `admin_reply` block.
+
+#### `DELETE /reviews/:id`
+Delete a review from the database.
+- **Permissions**: `reviews:write`
+- **Response**: `200 OK` with `{ "message": "Review deleted" }`. Recalculates product rating aggregates.
+
+---
+
+## Storefront Reviews
+Storefront customer facing endpoints. Requires authentication for submission actions.
+
+#### `GET /storefront/products/:productId/reviews`
+List approved reviews for a specific product.
+- **Response**: `200 OK` with `{ "items": [...], "next_cursor": "...", "has_more": false }`.
+
+#### `POST /storefront/products/:productId/reviews`
+Submit a new product review. Subject to eligibility and settings (e.g. auto-publish vs. pending moderation).
+- **Authentication**: Storefront customer login token required.
+- **Request Body**:
+  ```json
+  { "rating": 5, "title": "Great Product", "comment": "Highly recommended", "images": ["https://..."] }
+  ```
+- **Response**: `201 Created` with the new review.
+
+#### `POST /storefront/reviews/upload-url`
+Request a presigned image upload URL for review attachments.
+- **Authentication**: Storefront customer login token required.
+- **Request Body**:
+  ```json
+  { "contentType": "image/jpeg" }
+  ```
+- **Response**: `200 OK` with `{ "uploadUrl": "...", "key": "..." }`.
+
+---
+
 ## Error Handling
 The API uses standard HTTP status codes:
 - `400 Bad Request`: Validation or signature verification errors.

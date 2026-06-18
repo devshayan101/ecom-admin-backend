@@ -7,7 +7,7 @@ import * as productService from '../services/productService';
 
 const CATEGORY_ATTRS = [
     { key: 'mrp', type: 'number' as const },
-    { key: 'emoji', type: 'string' as const }
+    { key: 'variant_name', type: 'string' as const }
 ];
 
 const CATEGORIES = [
@@ -99,7 +99,7 @@ async function seed() {
                     image: '',
                     attributes: {
                         mrp: p.original,
-                        emoji: p.emoji
+                        variant_name: 'Standard'
                     },
                     stock: 100, // Seed 100 in stock
                     low_stock_threshold: 10

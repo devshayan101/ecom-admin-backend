@@ -55,9 +55,9 @@ A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, an
 
 ## Project Structure
 - `src/index.ts`: Entry point and server configuration.
-- `src/routes/`: API route definitions.
-- `src/services/`: Business logic layer.
-- `src/models/`: Mongoose schemas.
+- `src/routes/`: API route definitions (including product reviews).
+- `src/services/`: Business logic layer (including review management and rating aggregation).
+- `src/models/`: Mongoose schemas (Product, Review, Settings, etc.).
 - `src/workers/`: Background job processors.
 - `src/middleware/`: Custom middleware (Auth, RBAC, etc.).
 - `src/config/`: Configuration and secrets management.

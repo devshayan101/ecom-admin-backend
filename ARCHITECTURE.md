@@ -31,6 +31,11 @@ Processes asynchronous background jobs using BullMQ. Key tasks include:
 ### Background Processing
 BullMQ manages job scheduling and execution via Redis. Each worker is dedicated to a specific queue (e.g., `notifications`, `payments`) to allow for independent scaling.
 
+### Review Moderation & Rating Aggregation
+- **Caching Aggregates**: To optimize storefront page-load speeds, aggregate ratings (`rating_average` and `rating_count`) are cached directly on the `Product` document.
+- **On-Demand Recalculation**: Averages are computed using MongoDB aggregation pipelines only when reviews transition status (e.g., approved, rejected, deleted), bypassing the need to run costly count/average operations on every storefront product details hit.
+- **Moderation Workflow**: Review status defaults to `pending` unless the settings dashboard toggle for `reviews.auto_publish` is turned on.
+
 ### Integrations
 - **Stripe**: Handles order payments. Webhooks update the order status asychronously.
 - **Cloudflare R2**: Used for product image storage with pre-signed upload URLs for security (using S3-compatible API).
