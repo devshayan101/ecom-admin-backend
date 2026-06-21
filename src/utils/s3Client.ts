@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, GetObjectTaggingCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { config } from '../config/secrets';
 import { AppError, ErrorCodes } from './errors';
@@ -24,8 +24,7 @@ const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export async function getPresignedUploadUrl(
     key: string,
-    contentType: string,
-    uploadSessionId: string
+    contentType: string
 ): Promise<string> {
     if (!ALLOWED_MIMES.includes(contentType)) {
         throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, `Unsupported MIME type: ${contentType}`, 'content_type');
@@ -34,7 +33,6 @@ export async function getPresignedUploadUrl(
         Bucket: config.r2BucketName,
         Key: `${config.s3PublicPrefix}/${key}`,
         ContentType: contentType,
-        Tagging: `upload_session_id=${uploadSessionId}&created_at=${new Date().toISOString()}`,
     });
     return getSignedUrl(getS3(), command, { expiresIn: 300 });
 }
@@ -52,12 +50,4 @@ export async function listS3Objects(prefix: string) {
         Prefix: prefix,
     }));
     return result.Contents || [];
-}
-
-export async function getObjectTags(key: string) {
-    const result = await getS3().send(new GetObjectTaggingCommand({
-        Bucket: config.r2BucketName,
-        Key: key,
-    }));
-    return result.TagSet || [];
 }

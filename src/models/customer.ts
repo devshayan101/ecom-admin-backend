@@ -34,7 +34,6 @@ const customerSchema = new Schema<ICustomer>({
     address: { type: addressSchema, default: () => ({}) },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-customerSchema.index({ email: 1 }, { unique: true });
 customerSchema.index({ created_at: -1 });
 
 export const CustomerModel = mongoose.model<ICustomer>('Customer', customerSchema);

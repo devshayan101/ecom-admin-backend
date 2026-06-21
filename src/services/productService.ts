@@ -110,8 +110,7 @@ export async function deleteProduct(id: string, force: boolean, userRole: string
 
 export async function generateUploadUrl(contentType: string) {
     const key = `${uuidv4()}.${contentType.split('/')[1]}`;
-    const uploadSessionId = uuidv4();
-    const url = await getPresignedUploadUrl(key, contentType, uploadSessionId);
+    const url = await getPresignedUploadUrl(key, contentType);
     const objectUrl = `${config.r2PublicUrl}/${config.s3PublicPrefix}/${key}`;
     return { uploadUrl: url, objectUrl };
 }
