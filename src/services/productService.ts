@@ -40,6 +40,10 @@ export async function createProduct(data: any) {
 
     // Create inventory records for each variant
     for (const variant of product.variants) {
+        const inputVariant = data.variants?.find((v: any) => v.sku === variant.sku);
+        const initialStock = inputVariant ? (Number(inputVariant.stock) || 0) : 0;
+        const initialThreshold = inputVariant ? (Number(inputVariant.low_stock_threshold) || 10) : 10;
+
         await InventoryModel.updateOne(
             { _id: variant._id },
             {
@@ -47,9 +51,9 @@ export async function createProduct(data: any) {
                     _id: variant._id,
                     product_id: product._id,
                     sku: variant.sku,
-                    stock: 0,
+                    stock: initialStock,
                     reserved: 0,
-                    low_stock_threshold: 10,
+                    low_stock_threshold: initialThreshold,
                     manual_adjustment_log: [],
                 },
             },
@@ -72,6 +76,32 @@ export async function updateProduct(id: string, data: any) {
 
     Object.assign(existing, data);
     await existing.save();
+
+    // Create inventory records for each variant if they don't exist
+    if (existing.variants) {
+        for (const variant of existing.variants) {
+            const inputVariant = data.variants?.find((v: any) => v.sku === variant.sku || (v._id && v._id.toString() === variant._id.toString()));
+            const initialStock = inputVariant ? (Number(inputVariant.stock) || 0) : 0;
+            const initialThreshold = inputVariant ? (Number(inputVariant.low_stock_threshold) || 10) : 10;
+
+            await InventoryModel.updateOne(
+                { _id: variant._id },
+                {
+                    $setOnInsert: {
+                        _id: variant._id,
+                        product_id: existing._id,
+                        sku: variant.sku,
+                        stock: initialStock,
+                        reserved: 0,
+                        low_stock_threshold: initialThreshold,
+                        manual_adjustment_log: [],
+                    },
+                },
+                { upsert: true }
+            );
+        }
+    }
+
     return existing;
 }
 
