@@ -31,7 +31,7 @@ export const config = {
     r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
     r2BucketName: process.env.R2_BUCKET_NAME || '',
     r2PublicUrl: process.env.R2_PUBLIC_URL || 'http://localhost:3002/public',
-    s3PublicPrefix: process.env.R2_PUBLIC_PREFIX || 'product-images',
+    s3PublicPrefix: (process.env.R2_PUBLIC_PREFIX || 'product-images').replace(/\/$/, ''),
 
     // Resend
     resendApiKey: process.env.RESEND_API_KEY || '',

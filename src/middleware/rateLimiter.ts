@@ -4,7 +4,16 @@ import { config } from '../config/secrets';
 import { AppError, ErrorCodes } from '../utils/errors';
 
 export async function rateLimiter(c: Context, next: Next) {
-    const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
+    if (c.req.method === 'OPTIONS') {
+        await next();
+        return;
+    }
+
+    const ip = c.req.header('x-forwarded-for') || 
+               c.req.header('x-real-ip') || 
+               c.env?.incoming?.socket?.remoteAddress || 
+               '127.0.0.1';
+
     const key = `rate_limit:auth:${ip}`;
     const redis = getRedis();
     const windowSeconds = config.authRateLimitWindowSeconds;
