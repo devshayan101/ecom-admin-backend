@@ -9,6 +9,7 @@
         "test": "jest --forceExit --detectOpenHandles",
         "seed:mock": "ts-node --require dotenv/config src/config/mockSeed.ts",
         "seed:mock:clean": "ts-node --require dotenv/config src/config/mockSeed.ts --clean",
+        "seed:storefront": "ts-node --require dotenv/config src/config/seedStorefront.ts",
         "lint": "tsc --noEmit"
     },
     "dependencies": {

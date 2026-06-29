@@ -43,6 +43,7 @@ export async function createOrder(body: {
     items: Array<{ variant_id: string; sku: string; price_at_purchase: number; quantity: number }>;
     shipping_address: any;
     idempotency_key: string;
+    payment_method?: 'STRIPE' | 'COD';
 }) {
     const redis = getRedis();
     const idemKey = `idem:${body.idempotency_key}`;
@@ -51,8 +52,11 @@ export async function createOrder(body: {
     const cached = await redis.get(idemKey);
     if (cached) return JSON.parse(cached);
 
+    const payment_method = body.payment_method || 'STRIPE';
     const total_amount = body.items.reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0);
-    const paymentDeadline = new Date(Date.now() + config.paymentDeadlineMinutes * 60 * 1000);
+    const paymentDeadline = payment_method === 'STRIPE'
+        ? new Date(Date.now() + config.paymentDeadlineMinutes * 60 * 1000)
+        : null;
 
     const session = await mongoose.startSession();
     let order: any;
@@ -71,6 +75,7 @@ export async function createOrder(body: {
             customer_id: new mongoose.Types.ObjectId(body.customer_id),
             status: 'PENDING',
             payment_status: 'UNPAID',
+            payment_method,
             idempotency_key: body.idempotency_key,
             payment_deadline_at: paymentDeadline,
             shipping_address: body.shipping_address,
@@ -88,47 +93,52 @@ export async function createOrder(body: {
         await session.endSession();
     }
 
-    // Create Stripe PaymentIntent (after transaction commit)
-    let paymentIntent;
-    try {
-        const stripe = getStripe();
-        paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(total_amount * 100), // cents
-            currency: 'usd',
-            metadata: { order_id: order._id.toString() },
-        }, { idempotencyKey: body.idempotency_key });
+    let client_secret: string | undefined;
 
-        // Save stripe PI id
-        await OrderModel.updateOne({ _id: order._id }, {
-            stripe_payment_intent_id: paymentIntent.id,
-        });
-    } catch (stripeErr) {
-        // Compensation: cancel order and release reservations
-        const compSession = await mongoose.startSession();
+    if (payment_method === 'STRIPE') {
+        // Create Stripe PaymentIntent (after transaction commit)
+        let paymentIntent;
         try {
-            compSession.startTransaction();
-            await OrderModel.updateOne(
-                { _id: order._id },
-                { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
-                { session: compSession }
-            );
-            for (const item of body.items) {
-                await inventoryService.releaseReservation(item.variant_id, item.quantity);
+            const stripe = getStripe();
+            paymentIntent = await stripe.paymentIntents.create({
+                amount: Math.round(total_amount * 100), // cents
+                currency: 'usd',
+                metadata: { order_id: order._id.toString() },
+            }, { idempotencyKey: body.idempotency_key });
+
+            // Save stripe PI id
+            await OrderModel.updateOne({ _id: order._id }, {
+                stripe_payment_intent_id: paymentIntent.id,
+            });
+            client_secret = paymentIntent.client_secret ?? undefined;
+        } catch (stripeErr) {
+            // Compensation: cancel order and release reservations
+            const compSession = await mongoose.startSession();
+            try {
+                compSession.startTransaction();
+                await OrderModel.updateOne(
+                    { _id: order._id },
+                    { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
+                    { session: compSession }
+                );
+                for (const item of body.items) {
+                    await inventoryService.releaseReservation(item.variant_id, item.quantity);
+                }
+                await compSession.commitTransaction();
+            } catch {
+                await compSession.abortTransaction();
+            } finally {
+                await compSession.endSession();
             }
-            await compSession.commitTransaction();
-        } catch {
-            await compSession.abortTransaction();
-        } finally {
-            await compSession.endSession();
+            throw new AppError(
+                ErrorCodes.PAYMENT_INTENT_FAILED.code,
+                ErrorCodes.PAYMENT_INTENT_FAILED.statusCode,
+                'Failed to create payment intent. Order has been cancelled.'
+            );
         }
-        throw new AppError(
-            ErrorCodes.PAYMENT_INTENT_FAILED.code,
-            ErrorCodes.PAYMENT_INTENT_FAILED.statusCode,
-            'Failed to create payment intent. Order has been cancelled.'
-        );
     }
 
-    const result = { order: order.toObject(), client_secret: paymentIntent.client_secret };
+    const result = { order: order.toObject(), client_secret };
 
     // Cache idempotency result (24h)
     await redis.set(idemKey, JSON.stringify(result), 'EX', 86400);
