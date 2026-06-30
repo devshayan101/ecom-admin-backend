@@ -7,6 +7,7 @@ if (process.env.NODE_ENV !== 'production') {
 export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3001', 10),
+    frontendUrl: process.env.FRONTEND_URL || '',
 
     // Database
     mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/ecom_admin',

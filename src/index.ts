@@ -39,8 +39,13 @@ const app = new Hono();
 app.use('*', logger());
 
 // Enable CORS
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
+if (config.frontendUrl) {
+    allowedOrigins.push(...config.frontendUrl.split(',').map(url => url.trim()));
+}
+
 app.use('*', cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+    origin: allowedOrigins,
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],

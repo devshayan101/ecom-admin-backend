@@ -5,6 +5,11 @@ import { ProductModel } from '../models/product';
 import { InventoryModel } from '../models/inventory';
 import * as productService from '../services/productService';
 
+const CATEGORY_ATTRS = [
+    { key: 'mrp', type: 'number' as const },
+    { key: 'emoji', type: 'string' as const }
+];
+
 const CATEGORIES = [
     { name: 'Skincare', slug: 'skincare' },
     { name: 'Cosmetics', slug: 'cosmetics' },
@@ -62,7 +67,7 @@ async function seed() {
             name: cat.name,
             slug: cat.slug,
             parent_id: null,
-            attribute_schema: []
+            attribute_schema: CATEGORY_ATTRS
         });
         categoryMap[cat.slug] = doc._id.toString();
         console.log(`Created Category: ${doc.name} (${doc.slug})`);
@@ -92,7 +97,10 @@ async function seed() {
                     sku,
                     price: p.price,
                     image: '',
-                    attributes: {},
+                    attributes: {
+                        mrp: p.original,
+                        emoji: p.emoji
+                    },
                     stock: 100, // Seed 100 in stock
                     low_stock_threshold: 10
                 }
