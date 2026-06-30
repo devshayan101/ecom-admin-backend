@@ -1,5 +1,6 @@
 import { Worker } from 'bullmq';
 import { getRedisOptions } from '../utils/redisClient';
+import { config } from '../config/secrets';
 import { ProductModel } from '../models/product';
 import { listS3Objects, deleteS3Object } from '../utils/s3Client';
 
