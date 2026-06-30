@@ -3,8 +3,9 @@ import { config } from '../config/secrets';
 import { OrderModel } from '../models/order';
 import * as inventoryService from '../services/inventoryService';
 import { writeSystemAuditLog } from '../middleware/auditLog';
+import { getRedisOptions } from '../utils/redisClient';
 
-const connection = { url: config.redisUrl };
+const connection = getRedisOptions();
 
 export async function processPaymentExpiry() {
     const now = new Date();

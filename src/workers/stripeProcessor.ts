@@ -1,13 +1,13 @@
 import { Worker } from 'bullmq';
 import { config } from '../config/secrets';
 import { OrderModel } from '../models/order';
-import { getRedis } from '../utils/redisClient';
+import { getRedis, getRedisOptions } from '../utils/redisClient';
 import * as inventoryService from '../services/inventoryService';
 import * as orderService from '../services/orderService';
 import { writeSystemAuditLog } from '../middleware/auditLog';
 import { orderNotifyQueue } from '../queues/queues';
 
-const connection = { url: config.redisUrl };
+const connection = getRedisOptions();
 
 export function startStripeProcessorWorker() {
     return new Worker('stripe-webhook-processor', async (job) => {

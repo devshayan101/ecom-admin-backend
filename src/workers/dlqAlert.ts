@@ -1,10 +1,10 @@
 import { Worker } from 'bullmq';
 import { config } from '../config/secrets';
 import { stripeDlqQueue } from '../queues/queues';
-import { getRedis } from '../utils/redisClient';
+import { getRedis, getRedisOptions } from '../utils/redisClient';
 import { sendEmail } from '../utils/resendClient';
 
-const connection = { url: config.redisUrl };
+const connection = getRedisOptions();
 
 export function startDlqAlertWorker() {
     // Polls every 60 seconds

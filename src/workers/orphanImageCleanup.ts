@@ -1,9 +1,9 @@
 import { Worker } from 'bullmq';
-import { config } from '../config/secrets';
+import { getRedisOptions } from '../utils/redisClient';
 import { ProductModel } from '../models/product';
 import { listS3Objects, deleteS3Object } from '../utils/s3Client';
 
-const connection = { url: config.redisUrl };
+const connection = getRedisOptions();
 
 export function startOrphanImageCleanupWorker() {
     return new Worker('product-image-orphan-cleanup', async () => {

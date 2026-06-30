@@ -4,12 +4,12 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { config } from '../config/secrets';
 import { OrderModel } from '../models/order';
-import { getRedis } from '../utils/redisClient';
+import { getRedis, getRedisOptions } from '../utils/redisClient';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const connection = { url: config.redisUrl };
+const connection = getRedisOptions();
 
 export function startDashboardCronWorker() {
     return new Worker('dashboard-aggregation', async () => {

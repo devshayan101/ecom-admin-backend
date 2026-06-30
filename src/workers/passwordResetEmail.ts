@@ -1,8 +1,8 @@
 import { Worker } from 'bullmq';
-import { config } from '../config/secrets';
+import { getRedisOptions } from '../utils/redisClient';
 import { sendEmail } from '../utils/resendClient';
 
-const connection = { url: config.redisUrl };
+const connection = getRedisOptions();
 
 export function startPasswordResetEmailWorker() {
     return new Worker('password-reset-email', async (job) => {

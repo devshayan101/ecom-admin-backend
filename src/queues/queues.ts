@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
-import { config } from '../config/secrets';
+import { getRedisOptions } from '../utils/redisClient';
 
-const connection = { url: config.redisUrl };
+const connection = getRedisOptions();
 
 export const lowStockQueue = new Queue('low-stock-alert', { connection });
 export const orderNotifyQueue = new Queue('order-status-notification', { connection });

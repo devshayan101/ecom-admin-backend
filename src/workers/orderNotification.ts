@@ -1,9 +1,9 @@
 import { Worker } from 'bullmq';
-import { config } from '../config/secrets';
+import { getRedisOptions } from '../utils/redisClient';
 import { sendEmail } from '../utils/resendClient';
 import { CustomerModel } from '../models/customer';
 
-const connection = { url: config.redisUrl };
+const connection = getRedisOptions();
 
 export function startOrderNotificationWorker() {
     return new Worker('order-status-notification', async (job) => {
