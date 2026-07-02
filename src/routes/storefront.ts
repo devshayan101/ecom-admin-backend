@@ -15,6 +15,7 @@ import { getRedis } from '../utils/redisClient';
 import { passwordResetQueue } from '../queues/queues';
 import { customerAuthMiddleware, optionalCustomerAuthMiddleware, CustomerEnv } from '../middleware/customerAuth';
 import { SettingsModel } from '../models/settings';
+import { getCarrierRates } from '../services/carrierService';
 
 const storefront = new Hono<CustomerEnv>();
 
@@ -398,6 +399,8 @@ storefront.post('/checkout', optionalCustomerAuthMiddleware, async (c) => {
             postcode: customerData?.address?.postcode || customer.address?.postcode || 'N/A',
             country: customerData?.address?.country || customer.address?.country || 'India'
         },
+        shipping_cost: body.shipping_cost || 0,
+        shipping_rate_name: body.shipping_rate_name || '',
         idempotency_key: idempotencyKey,
         payment_method: payment_method || 'STRIPE'
     });
@@ -446,6 +449,116 @@ storefront.post('/products/reviews/upload-url', customerAuthMiddleware, async (c
     }
     const result = await productService.generateUploadUrl(content_type);
     return c.json(result);
+});
+
+// POST /storefront/shipping/rates -> Get shipping rates based on destination address & cart details
+storefront.post('/shipping/rates', async (c) => {
+    const { destCountry, destState, destPostcode, totalWeight = 0, subtotal = 0 } = await c.req.json();
+    
+    if (!destCountry) {
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'Destination country is required');
+    }
+
+    const settings = await SettingsModel.findOne({});
+    if (!settings || !settings.shipping || !settings.shipping.enabled) {
+        return c.json({ rates: [] });
+    }
+
+    // Match Zone (specific state/country matching first, then fallback)
+    const matchedZone = settings.shipping.zones.find(zone => {
+        if (!zone.active) return false;
+        
+        const countryMatch = zone.countries.length === 0 || zone.countries.some(c => 
+            c.toLowerCase() === destCountry.toLowerCase()
+        );
+        const stateMatch = zone.states.length === 0 || zone.states.some(s => 
+            s.toLowerCase() === (destState || '').toLowerCase() || 
+            s.toLowerCase() === 'all' || 
+            s.toLowerCase() === 'all states'
+        );
+        
+        return countryMatch && stateMatch;
+    });
+
+    const rates: any[] = [];
+
+    if (matchedZone) {
+        // 1. Process Custom Rates
+        for (const rate of matchedZone.rates) {
+            if (!rate.active) continue;
+
+            const rateId = (rate as any)._id?.toString() || rate.name;
+
+            if (rate.type === 'flat') {
+                rates.push({
+                    id: rateId,
+                    name: rate.name,
+                    price: rate.price,
+                    type: 'custom_flat',
+                    estimatedDays: 3
+                });
+            } else if (rate.type === 'price_based') {
+                const min = rate.minLimit || 0;
+                const max = rate.maxLimit || Infinity;
+                if (subtotal >= min && subtotal <= max) {
+                    rates.push({
+                        id: rateId,
+                        name: rate.name,
+                        price: rate.price,
+                        type: 'custom_price',
+                        estimatedDays: 3
+                    });
+                }
+            } else if (rate.type === 'weight_based') {
+                const min = rate.minLimit || 0;
+                const max = rate.maxLimit || Infinity;
+                if (totalWeight >= min && totalWeight <= max) {
+                    rates.push({
+                        id: rateId,
+                        name: rate.name,
+                        price: rate.price,
+                        type: 'custom_weight',
+                        estimatedDays: 3
+                    });
+                }
+            }
+        }
+    }
+
+    // 2. Query Carrier Rates (if enabled)
+    const carriers = settings.shipping.carriers;
+    if (carriers && (carriers.delhivery?.enabled || carriers.fedex?.enabled || carriers.dhl?.enabled)) {
+        try {
+            const carrierRates = await getCarrierRates({
+                originPostcode: settings.general?.storePhone || '110001', // fallback origin postcode
+                destPostcode: destPostcode || '',
+                destCountry,
+                destState: destState || '',
+                totalWeight,
+                subtotal
+            }, {
+                delhivery: carriers.delhivery,
+                fedex: carriers.fedex,
+                dhl: carriers.dhl
+            });
+
+            for (const cr of carrierRates) {
+                rates.push({
+                    id: `${cr.carrier}_${cr.name.replace(/\s+/g, '_').toLowerCase()}`,
+                    name: cr.name,
+                    price: cr.price,
+                    type: 'carrier',
+                    carrier: cr.carrier,
+                    estimatedDays: cr.estimatedDays
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching carrier shipping rates (falling back to custom rates):', error);
+            // Fallback: Custom rates only, which are already calculated above.
+        }
+    }
+
+    return c.json({ rates });
 });
 
 export default storefront;

@@ -62,6 +62,8 @@ export async function createOrder(body: {
     customer_id: string;
     items: Array<{ variant_id: string; sku: string; price_at_purchase: number; quantity: number }>;
     shipping_address: any;
+    shipping_cost?: number;
+    shipping_rate_name?: string;
     idempotency_key: string;
     payment_method?: 'STRIPE' | 'COD';
 }) {
@@ -181,7 +183,9 @@ export async function createOrder(body: {
         });
     }
 
-    const total_amount = calculatedItems.reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0);
+    const shipping_cost = body.shipping_cost || 0;
+    const shipping_rate_name = body.shipping_rate_name || '';
+    const total_amount = calculatedItems.reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0) + shipping_cost;
     const paymentDeadline = payment_method === 'STRIPE'
         ? new Date(Date.now() + config.paymentDeadlineMinutes * 60 * 1000)
         : null;
@@ -208,6 +212,8 @@ export async function createOrder(body: {
             payment_deadline_at: paymentDeadline,
             shipping_address: body.shipping_address,
             items: calculatedItems,
+            shipping_cost,
+            shipping_rate_name,
             total_amount,
         }], { session });
 

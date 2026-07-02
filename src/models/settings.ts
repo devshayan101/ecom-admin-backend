@@ -28,6 +28,32 @@ export interface ICountryConfig {
     states: IStateConfig[];
 }
 
+export interface ICustomRate {
+    name: string;
+    type: 'flat' | 'price_based' | 'weight_based';
+    price: number;
+    minLimit?: number; // in grams for weight_based, in cents/currency for price_based
+    maxLimit?: number; // in grams for weight_based, in cents/currency for price_based
+    active: boolean;
+}
+
+export interface ICarrierConfig {
+    enabled: boolean;
+    sandbox: boolean;
+    apiKey: string;
+    apiSecret?: string;
+    accountId?: string;
+    extraSettings?: Record<string, any>;
+}
+
+export interface IShippingZone {
+    name: string;
+    countries: string[];
+    states: string[];
+    rates: ICustomRate[];
+    active: boolean;
+}
+
 export interface ISettings extends Document {
     general: {
         storeName: string;
@@ -46,6 +72,15 @@ export interface ISettings extends Document {
     };
     reviews?: {
         auto_publish: boolean;
+    };
+    shipping: {
+        enabled: boolean;
+        zones: IShippingZone[];
+        carriers: {
+            delhivery: ICarrierConfig;
+            fedex: ICarrierConfig;
+            dhl: ICarrierConfig;
+        };
     };
     created_at: Date;
     updated_at: Date;
@@ -79,6 +114,32 @@ const countryConfigSchema = new Schema<ICountryConfig>({
     states: [stateConfigSchema],
 });
 
+const customRateSchema = new Schema<ICustomRate>({
+    name: { type: String, required: true },
+    type: { type: String, required: true, enum: ['flat', 'price_based', 'weight_based'] },
+    price: { type: Number, required: true, min: 0 },
+    minLimit: { type: Number, default: 0 },
+    maxLimit: { type: Number },
+    active: { type: Boolean, default: true }
+});
+
+const carrierConfigSchema = new Schema<ICarrierConfig>({
+    enabled: { type: Boolean, default: false },
+    sandbox: { type: Boolean, default: true },
+    apiKey: { type: String, default: "" },
+    apiSecret: { type: String, default: "" },
+    accountId: { type: String, default: "" },
+    extraSettings: { type: Map, of: Schema.Types.Mixed, default: {} }
+}, { _id: false });
+
+const shippingZoneSchema = new Schema<IShippingZone>({
+    name: { type: String, required: true },
+    countries: { type: [String], default: [] },
+    states: { type: [String], default: [] },
+    rates: [customRateSchema],
+    active: { type: Boolean, default: true }
+});
+
 const settingsSchema = new Schema<ISettings>({
     general: {
         storeName: { type: String, default: 'My Store' },
@@ -97,6 +158,15 @@ const settingsSchema = new Schema<ISettings>({
     },
     reviews: {
         auto_publish: { type: Boolean, default: false }
+    },
+    shipping: {
+        enabled: { type: Boolean, default: false },
+        zones: { type: [shippingZoneSchema], default: [] },
+        carriers: {
+            delhivery: { type: carrierConfigSchema, default: () => ({}) },
+            fedex: { type: carrierConfigSchema, default: () => ({}) },
+            dhl: { type: carrierConfigSchema, default: () => ({}) }
+        }
     }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 

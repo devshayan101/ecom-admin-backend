@@ -20,6 +20,15 @@ export async function getSettings(): Promise<ISettings> {
                         enabled: false,
                         inclusive: false
                     }
+                },
+                shipping: {
+                    enabled: false,
+                    zones: [],
+                    carriers: {
+                        delhivery: { enabled: false, sandbox: true, apiKey: "", apiSecret: "", accountId: "" },
+                        fedex: { enabled: false, sandbox: true, apiKey: "", apiSecret: "", accountId: "" },
+                        dhl: { enabled: false, sandbox: true, apiKey: "", apiSecret: "", accountId: "" }
+                    }
                 }
             }
         },
@@ -75,6 +84,48 @@ export async function updateTaxSettings(data: {
     }
     if (data.countriesConfig !== undefined) {
         settings.taxes.countriesConfig = data.countriesConfig;
+    }
+    await settings.save();
+    return settings;
+}
+
+export async function updateShippingSettings(data: {
+    enabled?: boolean;
+    zones?: any[];
+    carriers?: {
+        delhivery?: any;
+        fedex?: any;
+        dhl?: any;
+    };
+}): Promise<ISettings> {
+    const settings = await getSettings();
+    if (!settings.shipping) {
+        settings.shipping = {
+            enabled: false,
+            zones: [],
+            carriers: {
+                delhivery: { enabled: false, sandbox: true, apiKey: "", apiSecret: "", accountId: "" },
+                fedex: { enabled: false, sandbox: true, apiKey: "", apiSecret: "", accountId: "" },
+                dhl: { enabled: false, sandbox: true, apiKey: "", apiSecret: "", accountId: "" }
+            }
+        };
+    }
+    if (data.enabled !== undefined) {
+        settings.shipping.enabled = data.enabled;
+    }
+    if (data.zones !== undefined) {
+        settings.shipping.zones = data.zones;
+    }
+    if (data.carriers !== undefined) {
+        if (data.carriers.delhivery !== undefined) {
+            settings.shipping.carriers.delhivery = data.carriers.delhivery;
+        }
+        if (data.carriers.fedex !== undefined) {
+            settings.shipping.carriers.fedex = data.carriers.fedex;
+        }
+        if (data.carriers.dhl !== undefined) {
+            settings.shipping.carriers.dhl = data.carriers.dhl;
+        }
     }
     await settings.save();
     return settings;

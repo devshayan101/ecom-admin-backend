@@ -24,4 +24,10 @@ settings.put('/taxes', requirePermission('settings:write'), async (c) => {
     return c.json(data);
 });
 
+settings.put('/shipping', requirePermission('settings:write'), async (c) => {
+    const body = await c.req.json();
+    const data = await settingsService.updateShippingSettings(body);
+    return c.json(data);
+});
+
 export default settings;
