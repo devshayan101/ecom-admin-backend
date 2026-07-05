@@ -25,6 +25,9 @@ export function getRedisOptions(): RedisOptions {
 export function getRedis(): Redis {
     if (!redis) {
         redis = new Redis(config.redisUrl, { maxRetriesPerRequest: null });
+        redis.on('error', (err) => {
+            console.error('Redis Client Error:', err);
+        });
     }
     return redis;
 }
