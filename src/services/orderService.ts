@@ -25,11 +25,22 @@ export async function listOrders(query: Record<string, string | undefined>) {
     const combinedFilter = { ...filter, ...cursorQuery };
 
     const items = await OrderModel.find(combinedFilter)
+        .populate('customer_id', 'name')
         .sort({ [sortField]: sortOrder, _id: sortOrder })
         .limit(limit + 1)
         .lean();
 
-    return buildPaginationResult(items, limit, sortField);
+    const mappedItems = items.map((item: any) => {
+        const customerName = item.customer_id?.name || 'Customer';
+        const customerIdString = item.customer_id?._id?.toString() || item.customer_id?.toString() || '';
+        return {
+            ...item,
+            customer_name: customerName,
+            customer_id: customerIdString
+        };
+    });
+
+    return buildPaginationResult(mappedItems, limit, sortField);
 }
 
 export async function getOrderById(id: string) {
