@@ -12,6 +12,12 @@ categories.get('/', requirePermission('categories:read'), async (c) => {
     return c.json({ items: cats });
 });
 
+categories.get('/:id', requirePermission('categories:read'), async (c) => {
+    const id = c.req.param('id')!;
+    const cat = await categoryService.getCategoryById(id);
+    return c.json(cat);
+});
+
 categories.post('/', requirePermission('categories:write'), async (c) => {
     const body = await c.req.json();
     const cat = await categoryService.createCategory(body);
