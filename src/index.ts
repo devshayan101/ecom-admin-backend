@@ -21,6 +21,7 @@ import webhookRoutes from './routes/webhooks';
 import dashboardRoutes from './routes/dashboard';
 import reportRoutes from './routes/reports';
 import auditLogRoutes from './routes/auditLogs';
+import settingsRoutes from './routes/settings';
 
 // Workers
 import { startLowStockAlertWorker } from './workers/lowStockAlert';
@@ -65,6 +66,7 @@ app.route('/webhooks', webhookRoutes);
 app.route('/dashboard', dashboardRoutes);
 app.route('/reports', reportRoutes);
 app.route('/audit-logs', auditLogRoutes);
+app.route('/settings', settingsRoutes);
 
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }));

@@ -19,6 +19,7 @@ const ROLE_DEFAULTS = [
             'dashboard:read',
             'reports:read',
             'audit_logs:read',
+            'settings:read', 'settings:write',
         ],
     },
     {
@@ -32,6 +33,7 @@ const ROLE_DEFAULTS = [
             'dashboard:read',
             'reports:read',
             'audit_logs:read',
+            'settings:read',
         ],
     },
 ];
@@ -41,7 +43,7 @@ export async function seed(): Promise<void> {
     for (const role of ROLE_DEFAULTS) {
         await RoleModel.updateOne(
             { name: role.name },
-            { $setOnInsert: role },
+            { $set: { permissions: role.permissions }, $setOnInsert: { name: role.name } },
             { upsert: true }
         );
     }
