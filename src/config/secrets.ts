@@ -18,6 +18,8 @@ export const config = {
     jwtPublicKey: process.env.JWT_PUBLIC_KEY || '',
     accessTokenExpirySeconds: 300, // 5 minutes
     refreshTokenExpirySeconds: 604800, // 7 days
+    customerJwtSecret: process.env.CUSTOMER_JWT_SECRET || 'fallback-customer-jwt-secret-key-123456789',
+    storefrontApiSecret: process.env.STOREFRONT_API_SECRET || 'fallback-storefront-api-secret-key-123456789',
 
     // Stripe
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',

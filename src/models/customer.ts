@@ -14,6 +14,8 @@ export interface ICustomer extends Document {
     phone: string;
     is_active: boolean;
     address: IAddress;
+    password_hash?: string;
+    providers?: Array<{ provider: string; providerId: string }>;
     created_at: Date;
     updated_at: Date;
 }
@@ -32,6 +34,14 @@ const customerSchema = new Schema<ICustomer>({
     phone: { type: String, default: '' },
     is_active: { type: Boolean, default: true },
     address: { type: addressSchema, default: () => ({}) },
+    password_hash: { type: String },
+    providers: {
+        type: [{
+            provider: { type: String, required: true },
+            providerId: { type: String, required: true }
+        }],
+        default: []
+    }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 customerSchema.index({ created_at: -1 });

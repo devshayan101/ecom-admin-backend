@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import { rateLimiter } from '../middleware/rateLimiter';
 import * as authService from '../services/authService';
+import { passwordResetQueue } from '../queues/queues';
 import { config } from '../config/secrets';
 
 const auth = new Hono();
@@ -76,6 +77,9 @@ auth.post('/logout', async (c) => {
 auth.post('/forgot-password', async (c) => {
     const { email } = await c.req.json();
     const result = await authService.forgotPassword(email);
+    if (result) {
+        await passwordResetQueue.add('send-email', { email: result.email, token: result.token });
+    }
 
     // Don't reveal whether the email exists
     return c.json({ message: 'If that email exists, a reset link has been sent.' });

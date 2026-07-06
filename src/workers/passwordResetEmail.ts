@@ -7,8 +7,9 @@ const connection = getRedisOptions();
 
 export function startPasswordResetEmailWorker() {
     return new Worker('password-reset-email', async (job) => {
-        const { email, token } = job.data;
-        const resetUrl = `${config.nodeEnv === 'production' ? 'https' : 'http'}://localhost:3000/auth/reset-password?token=${token}`;
+        const { email, token, redirectUrl } = job.data;
+        const defaultResetUrl = `${config.nodeEnv === 'production' ? 'https' : 'http'}://localhost:3000/auth/reset-password?token=${token}`;
+        const resetUrl = redirectUrl ? `${redirectUrl}?token=${token}` : defaultResetUrl;
 
         await sendEmail(
             email,
