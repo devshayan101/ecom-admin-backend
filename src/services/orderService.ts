@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { OrderModel, IOrder, OrderStatus } from '../models/order';
+import { SettingsModel } from '../models/settings';
+import { ProductModel } from '../models/product';
 import { AppError, ErrorCodes } from '../utils/errors';
 import { getRedis } from '../utils/redisClient';
 import { getStripe } from '../utils/stripeClient';
@@ -64,7 +66,66 @@ export async function createOrder(body: {
     if (cached) return JSON.parse(cached);
 
     const payment_method = body.payment_method || 'STRIPE';
-    const total_amount = body.items.reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0);
+
+    // Calculate tax-inclusive prices and total amount based on settings and slabs
+    const settings = await SettingsModel.findOne({});
+    const inclusive = settings?.taxes?.gstVatSettings?.inclusive ?? false;
+    const taxRules = settings?.taxes?.taxRules ?? [];
+
+    const calculatedItems = [];
+    const shippingCountry = body.shipping_address.country || 'India';
+    const shippingState = body.shipping_address.state || '';
+
+    for (const item of body.items) {
+        const product = await ProductModel.findOne({ "variants._id": new mongoose.Types.ObjectId(item.variant_id) });
+        if (!product) {
+            throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, `Product variant not found: ${item.variant_id}`);
+        }
+        const variant = product.variants.find((v: any) => v._id.toString() === item.variant_id);
+        if (!variant) {
+            throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, `Variant not found: ${item.variant_id}`);
+        }
+
+        // Determine tax rate
+        let taxRate = 0;
+
+        // 1. Check product-level tax slabs
+        const productSlab = product.tax_slabs?.find((slab: any) => 
+            slab.region.toLowerCase() === shippingCountry.toLowerCase() ||
+            slab.region.toLowerCase() === `${shippingCountry} - ${shippingState}`.toLowerCase()
+        );
+
+        if (productSlab) {
+            taxRate = productSlab.rate;
+        } else {
+            // 2. Check global tax rules
+            const globalRule = taxRules.find((rule: any) => 
+                rule.active && (
+                    rule.country.toLowerCase() === shippingCountry.toLowerCase() &&
+                    (!rule.state || rule.state.toLowerCase() === shippingState.toLowerCase() || rule.state === "")
+                )
+            );
+            if (globalRule) {
+                taxRate = globalRule.rate;
+            }
+        }
+
+        // Apply rate
+        let priceAtPurchase = variant.price;
+        if (!inclusive) {
+            // Exclusive: add tax on top
+            priceAtPurchase = variant.price * (1 + taxRate / 100);
+        }
+
+        calculatedItems.push({
+            variant_id: item.variant_id,
+            sku: item.sku,
+            price_at_purchase: Math.round(priceAtPurchase * 100) / 100,
+            quantity: item.quantity,
+        });
+    }
+
+    const total_amount = calculatedItems.reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0);
     const paymentDeadline = payment_method === 'STRIPE'
         ? new Date(Date.now() + config.paymentDeadlineMinutes * 60 * 1000)
         : null;
@@ -90,7 +151,7 @@ export async function createOrder(body: {
             idempotency_key: body.idempotency_key,
             payment_deadline_at: paymentDeadline,
             shipping_address: body.shipping_address,
-            items: body.items,
+            items: calculatedItems,
             total_amount,
         }], { session });
 

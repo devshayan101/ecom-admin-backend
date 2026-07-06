@@ -8,6 +8,11 @@ export interface IVariant {
     attributes: Record<string, any>;
 }
 
+export interface ITaxSlab {
+    region: string;
+    rate: number;
+}
+
 export interface IProduct extends Document {
     name: string;
     description: string;
@@ -16,6 +21,7 @@ export interface IProduct extends Document {
     images: string[];
     status: 'active' | 'draft' | 'archived';
     variants: IVariant[];
+    tax_slabs?: ITaxSlab[];
     created_at: Date;
     updated_at: Date;
 }
@@ -35,6 +41,10 @@ const productSchema = new Schema<IProduct>({
     images: [{ type: String }],
     status: { type: String, enum: ['active', 'draft', 'archived'], default: 'draft' },
     variants: [variantSchema],
+    tax_slabs: [{
+        region: { type: String, required: true },
+        rate: { type: Number, required: true, min: 0, max: 100 }
+    }],
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 productSchema.index({ 'variants.sku': 1 }, { unique: true });

@@ -2,26 +2,29 @@ import { SettingsModel, ISettings, ITaxRule, IGstVatSettings } from '../models/s
 import { AppError, ErrorCodes } from '../utils/errors';
 
 export async function getSettings(): Promise<ISettings> {
-    let settings = await SettingsModel.findOne({});
-    if (!settings) {
-        settings = await SettingsModel.create({
-            general: {
-                storeName: 'My Store',
-                storeEmail: 'admin@store.com',
-                storePhone: '123-456-7890',
-                currency: 'USD',
-                timeZone: 'UTC',
-                language: 'en'
-            },
-            taxes: {
-                taxRules: [],
-                gstVatSettings: {
-                    enabled: false,
-                    inclusive: false
+    const settings = await SettingsModel.findOneAndUpdate(
+        {},
+        {
+            $setOnInsert: {
+                general: {
+                    storeName: 'My Store',
+                    storeEmail: 'admin@store.com',
+                    storePhone: '123-456-7890',
+                    currency: 'USD',
+                    timeZone: 'UTC',
+                    language: 'en'
+                },
+                taxes: {
+                    taxRules: [],
+                    gstVatSettings: {
+                        enabled: false,
+                        inclusive: false
+                    }
                 }
             }
-        });
-    }
+        },
+        { new: true, upsert: true }
+    );
     return settings;
 }
 
