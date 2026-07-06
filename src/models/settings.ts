@@ -36,8 +36,8 @@ export interface ISettings extends Document {
 
 const taxRuleSchema = new Schema<ITaxRule>({
     country: { type: String, required: true },
-    state: { type: String, required: true },
-    rate: { type: Number, required: true },
+    state: { type: String, default: "" },
+    rate: { type: Number, required: true, min: 0, max: 100 },
     name: { type: String, required: true },
     active: { type: Boolean, default: true },
 });
@@ -47,7 +47,7 @@ const gstVatSettingsSchema = new Schema<IGstVatSettings>({
     gstin: { type: String },
     vatNumber: { type: String },
     inclusive: { type: Boolean, default: false },
-});
+}, { _id: false });
 
 const settingsSchema = new Schema<ISettings>({
     general: {
