@@ -13,6 +13,7 @@ import { config } from '../config/secrets';
 import { getRedis } from '../utils/redisClient';
 import { passwordResetQueue } from '../queues/queues';
 import { customerAuthMiddleware, optionalCustomerAuthMiddleware, CustomerEnv } from '../middleware/customerAuth';
+import { SettingsModel } from '../models/settings';
 
 const storefront = new Hono<CustomerEnv>();
 
@@ -25,6 +26,20 @@ function generateCustomerJwt(customerId: string, email: string) {
 storefront.get('/categories', async (c) => {
     const list = await categoryService.listCategories();
     return c.json({ items: list });
+});
+
+// GET /storefront/settings -> Public settings (taxes config, currency)
+storefront.get('/settings', async (c) => {
+    const settings = await SettingsModel.findOne({}).lean();
+    if (!settings) {
+        return c.json({ taxes: { taxRules: [], gstVatSettings: { enabled: false, inclusive: false } } });
+    }
+    return c.json({
+        taxes: settings.taxes,
+        general: {
+            currency: settings.general?.currency || 'INR',
+        }
+    });
 });
 
 // GET /storefront/products -> List active products with pagination/filtering

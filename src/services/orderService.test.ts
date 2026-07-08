@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { createOrder, updateOrderStatus } from './orderService';
 import { OrderModel } from '../models/order';
 import { InventoryModel } from '../models/inventory';
+import { ProductModel } from '../models/product';
 
 // Mock Redis
 const redisMock: any = {
@@ -36,6 +37,7 @@ beforeAll(async () => {
     await mongoose.connect(mongoReplSet.getUri());
     await InventoryModel.ensureIndexes();
     await OrderModel.ensureIndexes();
+    await ProductModel.ensureIndexes();
 });
 
 afterAll(async () => {
@@ -46,16 +48,31 @@ afterAll(async () => {
 beforeEach(async () => {
     await OrderModel.deleteMany({});
     await InventoryModel.deleteMany({});
+    await ProductModel.deleteMany({});
     jest.clearAllMocks();
 });
 
 describe('OrderService', () => {
     const variantId = new mongoose.Types.ObjectId().toString();
+    const productId = new mongoose.Types.ObjectId().toString();
 
     beforeEach(async () => {
+        await ProductModel.create({
+            _id: productId,
+            name: 'Test Product',
+            category_id: new mongoose.Types.ObjectId(),
+            status: 'active',
+            variants: [{
+                _id: variantId,
+                sku: 'SKU-1',
+                price: 100,
+                attributes: {}
+            }]
+        });
+
         await InventoryModel.create({
             _id: variantId,
-            product_id: new mongoose.Types.ObjectId().toString(),
+            product_id: productId,
             sku: 'SKU-1',
             stock: 10,
             reserved: 0,

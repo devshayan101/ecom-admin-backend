@@ -51,6 +51,13 @@ export async function getOrderById(id: string) {
     return order;
 }
 
+function normalizeCountry(country: string): string {
+    const c = country.trim().toLowerCase();
+    if (c === 'india') return 'in';
+    if (c === 'united states' || c === 'usa' || c === 'us') return 'us';
+    return c;
+}
+
 export async function createOrder(body: {
     customer_id: string;
     items: Array<{ variant_id: string; sku: string; price_at_purchase: number; quantity: number }>;
@@ -73,7 +80,8 @@ export async function createOrder(body: {
     const taxRules = settings?.taxes?.taxRules ?? [];
 
     const calculatedItems = [];
-    const shippingCountry = body.shipping_address.country || 'India';
+    const rawCountry = body.shipping_address.country || 'India';
+    const shippingCountry = normalizeCountry(rawCountry);
     const shippingState = body.shipping_address.state || '';
 
     for (const item of body.items) {
@@ -90,21 +98,23 @@ export async function createOrder(body: {
         let taxRate = 0;
 
         // 1. Check product-level tax slabs
-        const productSlab = product.tax_slabs?.find((slab: any) => 
-            slab.region.toLowerCase() === shippingCountry.toLowerCase() ||
-            slab.region.toLowerCase() === `${shippingCountry} - ${shippingState}`.toLowerCase()
-        );
+        const productSlab = product.tax_slabs?.find((slab: any) => {
+            const slabRegion = normalizeCountry(slab.region);
+            return slabRegion === shippingCountry ||
+                   slabRegion === `${shippingCountry} - ${shippingState}`.toLowerCase();
+        });
 
         if (productSlab) {
             taxRate = productSlab.rate;
         } else {
             // 2. Check global tax rules
-            const globalRule = taxRules.find((rule: any) => 
-                rule.active && (
-                    rule.country.toLowerCase() === shippingCountry.toLowerCase() &&
+            const globalRule = taxRules.find((rule: any) => {
+                const ruleCountry = normalizeCountry(rule.country);
+                return rule.active && (
+                    ruleCountry === shippingCountry &&
                     (!rule.state || rule.state.toLowerCase() === shippingState.toLowerCase() || rule.state === "")
-                )
-            );
+                );
+            });
             if (globalRule) {
                 taxRate = globalRule.rate;
             }
