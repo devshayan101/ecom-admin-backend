@@ -57,6 +57,7 @@ export async function updateGeneralSettings(data: {
 export async function updateTaxSettings(data: {
     taxRules?: ITaxRule[];
     gstVatSettings?: IGstVatSettings;
+    countriesConfig?: any[];
 }): Promise<ISettings> {
     const settings = await getSettings();
     if (data.taxRules !== undefined) {
@@ -64,6 +65,9 @@ export async function updateTaxSettings(data: {
     }
     if (data.gstVatSettings !== undefined) {
         settings.taxes.gstVatSettings = data.gstVatSettings;
+    }
+    if (data.countriesConfig !== undefined) {
+        settings.taxes.countriesConfig = data.countriesConfig;
     }
     await settings.save();
     return settings;

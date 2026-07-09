@@ -99,22 +99,68 @@ export async function createOrder(body: {
 
         // 1. Check product-level tax slabs
         const productSlab = product.tax_slabs?.find((slab: any) => {
-            const slabRegion = normalizeCountry(slab.region);
-            return slabRegion === shippingCountry ||
-                   slabRegion === `${shippingCountry} - ${shippingState}`.toLowerCase();
+            const slabRegion = slab.region.toLowerCase();
+            const matchedCountry = rawCountry.toLowerCase();
+            const matchedCode = normalizeCountry(rawCountry).toLowerCase();
+
+            // Find resolved state codes from settings rules matching this country and state
+            const matchedRules = taxRules.filter((r: any) => 
+                (r.country.toLowerCase() === matchedCountry || (r.countryCode || '').toLowerCase() === matchedCode) &&
+                r.state.toLowerCase() === shippingState.toLowerCase()
+            );
+            const resolvedStateCodes = matchedRules.map((r: any) => (r.stateCode || '').toLowerCase()).filter(Boolean);
+
+            const stateMatches = (slabState: string) => {
+                const s = slabState.toLowerCase();
+                const sh = shippingState.toLowerCase();
+                return s === sh || resolvedStateCodes.includes(s);
+            };
+
+            const parts = slabRegion.split(' - ');
+            if (parts.length === 1) {
+                return slabRegion === matchedCountry || slabRegion === matchedCode;
+            } else if (parts.length === 2) {
+                const slabCountry = parts[0];
+                const slabState = parts[1];
+                const countryMatches = slabCountry === matchedCountry || slabCountry === matchedCode;
+                return countryMatches && stateMatches(slabState);
+            }
+            return false;
         });
 
         if (productSlab) {
             taxRate = productSlab.rate;
         } else {
-            // 2. Check global tax rules
-            const globalRule = taxRules.find((rule: any) => {
-                const ruleCountry = normalizeCountry(rule.country);
-                return rule.active && (
-                    ruleCountry === shippingCountry &&
-                    (!rule.state || rule.state.toLowerCase() === shippingState.toLowerCase() || rule.state === "")
-                );
+            const matchedCountry = rawCountry.toLowerCase();
+            const matchedCode = normalizeCountry(rawCountry).toLowerCase();
+            const matchedState = shippingState.toLowerCase();
+
+            const countryRules = taxRules.filter((rule: any) => {
+                if (!rule.active) return false;
+                const ruleCountry = rule.country.toLowerCase();
+                const ruleCountryCode = (rule.countryCode || '').toLowerCase();
+                return ruleCountry === matchedCountry || ruleCountryCode === matchedCode || ruleCountryCode === matchedCountry || ruleCountry === matchedCode;
             });
+
+            let globalRule = countryRules.find((rule: any) => {
+                const ruleState = (rule.state || '').toLowerCase();
+                const ruleStateCode = (rule.stateCode || '').toLowerCase();
+                if (!ruleState || ruleState === 'all states' || ruleStateCode === 'all') return false;
+                return ruleState === matchedState || ruleStateCode === matchedState;
+            });
+
+            if (!globalRule) {
+                globalRule = countryRules.find((rule: any) => {
+                    const ruleState = (rule.state || '').toLowerCase();
+                    const ruleStateCode = (rule.stateCode || '').toLowerCase();
+                    return ruleState === 'all states' || ruleStateCode === 'all';
+                });
+            }
+
+            if (!globalRule) {
+                globalRule = countryRules.find((rule: any) => !rule.state);
+            }
+
             if (globalRule) {
                 taxRate = globalRule.rate;
             }
