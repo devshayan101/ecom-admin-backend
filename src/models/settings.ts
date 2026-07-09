@@ -44,6 +44,9 @@ export interface ISettings extends Document {
         gstVatSettings: IGstVatSettings;
         countriesConfig?: ICountryConfig[];
     };
+    reviews?: {
+        auto_publish: boolean;
+    };
     created_at: Date;
     updated_at: Date;
 }
@@ -92,6 +95,9 @@ const settingsSchema = new Schema<ISettings>({
         gstVatSettings: { type: gstVatSettingsSchema, default: () => ({}) },
         countriesConfig: { type: [countryConfigSchema], default: [] },
     },
+    reviews: {
+        auto_publish: { type: Boolean, default: false }
+    }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 export const SettingsModel = mongoose.model<ISettings>('Settings', settingsSchema);

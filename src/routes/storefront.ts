@@ -3,6 +3,7 @@ import * as productService from '../services/productService';
 import * as categoryService from '../services/categoryService';
 import * as orderService from '../services/orderService';
 import * as customerService from '../services/customerService';
+import * as reviewService from '../services/reviewService';
 import { CustomerModel } from '../models/customer';
 import { AppError, ErrorCodes } from '../utils/errors';
 import { v4 as uuidv4 } from 'uuid';
@@ -405,6 +406,46 @@ storefront.post('/checkout', optionalCustomerAuthMiddleware, async (c) => {
         message: 'Order created successfully',
         ...result
     }, 201);
+});
+
+// --- Storefront Reviews Routes ---
+
+// GET /storefront/products/:id/reviews -> Get approved reviews for a product
+storefront.get('/products/:id/reviews', async (c) => {
+    const id = c.req.param('id')!;
+    const reviews = await reviewService.getProductReviews(id);
+    return c.json(reviews);
+});
+
+// POST /storefront/products/:id/reviews -> Submit a new review (Authenticated)
+storefront.post('/products/:id/reviews', customerAuthMiddleware, async (c) => {
+    const id = c.req.param('id')!;
+    const customerPayload = c.get('customer')!;
+    const body = await c.req.json();
+
+    if (!body.rating || body.rating < 1 || body.rating > 5) {
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'Rating must be between 1 and 5');
+    }
+
+    const customer = await customerService.getCustomerById(customerPayload.customerId);
+    const review = await reviewService.createReview(
+        customerPayload.customerId,
+        customer.name,
+        id,
+        body
+    );
+
+    return c.json(review, 201);
+});
+
+// POST /storefront/products/reviews/upload-url -> Presigned review image upload URL (Authenticated)
+storefront.post('/products/reviews/upload-url', customerAuthMiddleware, async (c) => {
+    const { content_type } = await c.req.json();
+    if (!content_type) {
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'Content type is required');
+    }
+    const result = await productService.generateUploadUrl(content_type);
+    return c.json(result);
 });
 
 export default storefront;

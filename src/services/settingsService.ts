@@ -37,6 +37,9 @@ export async function updateGeneralSettings(data: {
     currency?: string;
     timeZone?: string;
     language?: string;
+    reviews?: {
+        auto_publish: boolean;
+    };
 }): Promise<ISettings> {
     const settings = await getSettings();
     if (!settings.general) {
@@ -49,7 +52,11 @@ export async function updateGeneralSettings(data: {
             language: 'en'
         };
     }
-    Object.assign(settings.general, data);
+    const { reviews, ...generalData } = data;
+    Object.assign(settings.general, generalData);
+    if (reviews !== undefined) {
+        settings.reviews = reviews;
+    }
     await settings.save();
     return settings;
 }

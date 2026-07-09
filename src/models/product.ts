@@ -22,6 +22,8 @@ export interface IProduct extends Document {
     status: 'active' | 'draft' | 'archived';
     variants: IVariant[];
     tax_slabs?: ITaxSlab[];
+    rating_average?: number;
+    rating_count?: number;
     created_at: Date;
     updated_at: Date;
 }
@@ -45,6 +47,8 @@ const productSchema = new Schema<IProduct>({
         region: { type: String, required: true },
         rate: { type: Number, required: true, min: 0, max: 100 }
     }],
+    rating_average: { type: Number, default: 0 },
+    rating_count: { type: Number, default: 0 },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 productSchema.index({ 'variants.sku': 1 }, { unique: true });

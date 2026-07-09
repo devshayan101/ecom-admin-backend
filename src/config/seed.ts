@@ -20,6 +20,7 @@ const ROLE_DEFAULTS = [
             'reports:read',
             'audit_logs:read',
             'settings:read', 'settings:write',
+            'reviews:read', 'reviews:write',
         ],
     },
     {
@@ -34,6 +35,7 @@ const ROLE_DEFAULTS = [
             'reports:read',
             'audit_logs:read',
             'settings:read',
+            'reviews:read',
         ],
     },
 ];
