@@ -464,6 +464,22 @@ storefront.post('/shipping/rates', async (c) => {
         return c.json({ rates: [] });
     }
 
+    // Resolve destination country code and state code for precise matching
+    const destCountryLower = destCountry.toLowerCase();
+    const destStateLower = (destState || '').toLowerCase();
+    
+    const countryConfig = settings.taxes.countriesConfig?.find((c: any) => 
+        c.code.toLowerCase() === destCountryLower || c.name.toLowerCase() === destCountryLower
+    );
+    const countryCodeResolved = countryConfig ? countryConfig.code.toLowerCase() : destCountryLower;
+    
+    const matchedStateObj = countryConfig?.states?.find((s: any) => 
+        s.name.toLowerCase() === destStateLower || s.code.toLowerCase() === destStateLower
+    );
+    const stateCodeResolved = matchedStateObj ? matchedStateObj.code.toLowerCase() : destStateLower;
+    
+    const compositeStateKeyResolved = `${countryCodeResolved}:${stateCodeResolved}`;
+
     // Match Zone (specific state/country matching first, then fallback)
     const matchedZone = settings.shipping.zones.find(zone => {
         if (!zone.active) return false;
@@ -471,11 +487,16 @@ storefront.post('/shipping/rates', async (c) => {
         const countryMatch = zone.countries.length === 0 || zone.countries.some(c => 
             c.toLowerCase() === destCountry.toLowerCase()
         );
-        const stateMatch = zone.states.length === 0 || zone.states.some(s => 
-            s.toLowerCase() === (destState || '').toLowerCase() || 
-            s.toLowerCase() === 'all' || 
-            s.toLowerCase() === 'all states'
-        );
+        const stateMatch = zone.states.length === 0 || zone.states.some(s => {
+            const lowerS = s.toLowerCase();
+            if (lowerS === 'all' || lowerS === 'all states') return true;
+            
+            if (lowerS.includes(':')) {
+                return lowerS === compositeStateKeyResolved;
+            }
+            
+            return lowerS === destStateLower || lowerS === stateCodeResolved;
+        });
         
         return countryMatch && stateMatch;
     });
