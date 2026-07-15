@@ -1,9 +1,44 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
 import * as settingsService from '../services/settingsService';
 
 const settings = new Hono();
+
+const taxRuleSchema = z.object({
+    country: z.string().min(1, 'Country name is required'),
+    countryCode: z.string().min(1, 'Country code is required'),
+    state: z.string().default(''),
+    stateCode: z.string().default(''),
+    rate: z.number().min(0, 'Tax rate must be at least 0').max(100, 'Tax rate cannot exceed 100'),
+    name: z.string().min(1, 'Tax rule name is required'),
+    active: z.boolean().default(true),
+});
+
+const gstVatSettingsSchema = z.object({
+    enabled: z.boolean(),
+    gstin: z.string().optional(),
+    vatNumber: z.string().optional(),
+    inclusive: z.boolean(),
+});
+
+const stateConfigSchema = z.object({
+    name: z.string().min(1, 'State name is required'),
+    code: z.string().min(1, 'State code is required'),
+});
+
+const countryConfigSchema = z.object({
+    name: z.string().min(1, 'Country name is required'),
+    code: z.string().min(1, 'Country code is required'),
+    states: z.array(stateConfigSchema),
+});
+
+const updateTaxSettingsSchema = z.object({
+    taxRules: z.array(taxRuleSchema).optional(),
+    gstVatSettings: gstVatSettingsSchema.optional(),
+    countriesConfig: z.array(countryConfigSchema).optional(),
+});
 
 settings.use('/*', authMiddleware);
 
@@ -20,7 +55,8 @@ settings.put('/general', requirePermission('settings:write'), async (c) => {
 
 settings.put('/taxes', requirePermission('settings:write'), async (c) => {
     const body = await c.req.json();
-    const data = await settingsService.updateTaxSettings(body);
+    const validatedData = updateTaxSettingsSchema.parse(body);
+    const data = await settingsService.updateTaxSettings(validatedData);
     return c.json(data);
 });
 

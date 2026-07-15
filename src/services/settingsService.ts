@@ -1,11 +1,15 @@
+import mongoose from 'mongoose';
 import { SettingsModel, ISettings, ITaxRule, IGstVatSettings } from '../models/settings';
 import { AppError, ErrorCodes } from '../utils/errors';
 
+export const SETTINGS_ID = new mongoose.Types.ObjectId('000000000000000000000000');
+
 export async function getSettings(): Promise<ISettings> {
     const settings = await SettingsModel.findOneAndUpdate(
-        {},
+        { _id: SETTINGS_ID },
         {
             $setOnInsert: {
+                _id: SETTINGS_ID,
                 general: {
                     storeName: 'My Store',
                     storeEmail: 'admin@store.com',
