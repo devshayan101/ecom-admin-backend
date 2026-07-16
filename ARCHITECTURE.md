@@ -36,6 +36,11 @@ BullMQ manages job scheduling and execution via Redis. Each worker is dedicated 
 - **On-Demand Recalculation**: Averages are computed using MongoDB aggregation pipelines only when reviews transition status (e.g., approved, rejected, deleted), bypassing the need to run costly count/average operations on every storefront product details hit.
 - **Moderation Workflow**: Review status defaults to `pending` unless the settings dashboard toggle for `reviews.auto_publish` is turned on.
 
+### Singleton Settings & Validation
+- **Known ObjectId Singleton**: Settings stored in MongoDB enforce a strict singleton pattern using a constant ObjectId (`SETTINGS_ID = '000000000000000000000000'`). Upsert operations in `settingsService` and strict `_id` query selectors across storefront, order, and review services eliminate concurrent creation race conditions and guarantee immediate synchronization across services.
+- **Route Boundary Validation**: Input mutations for critical configuration (such as tax rules and rate configurations) are validated at the route boundary via Zod schemas before being passed to service layer persistence handlers.
+- **Shipping Zone Checkout Filtering**: When global shipping is enabled, public settings endpoints dynamically compute and return only the subset of countries and states covered by active shipping zones (`zone.active === true`), preventing customers from selecting unserviced destinations during checkout.
+
 ### Integrations
 - **Stripe**: Handles order payments. Webhooks update the order status asychronously.
 - **Cloudflare R2**: Used for product image storage with pre-signed upload URLs for security (using S3-compatible API).

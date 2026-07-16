@@ -382,6 +382,99 @@ Request a presigned image upload URL for review attachments.
 
 ---
 
+## Settings
+System-wide configuration management (singleton document). Requires `settings:read` / `settings:write` permissions.
+
+#### `GET /settings`
+Get full store settings (general, taxes, reviews, shipping).
+- **Permissions**: `settings:read`
+- **Response**: `200 OK` with settings document.
+
+#### `PUT /settings/general`
+Update general store configuration and country/state definitions.
+- **Permissions**: `settings:write`
+- **Request Body**: `{ "storeName": "...", "storeEmail": "...", "currency": "...", "countriesConfig": [...] }`
+- **Response**: `200 OK`.
+
+#### `PUT /settings/taxes`
+Update tax rules and GST/VAT settings. Validated via route-level Zod schemas.
+- **Permissions**: `settings:write`
+- **Request Body**:
+  ```json
+  {
+    "taxRules": [
+      {
+        "country": "United States",
+        "countryCode": "US",
+        "state": "California",
+        "stateCode": "CA",
+        "rate": 8.25,
+        "name": "CA Tax",
+        "active": true
+      }
+    ],
+    "gstVatSettings": { "enabled": true, "gstin": "...", "inclusive": false },
+    "countriesConfig": [...]
+  }
+  ```
+- **Response**: `200 OK`.
+- **Errors**: `422 Unprocessable Entity` on validation failure.
+
+#### `PUT /settings/shipping`
+Update global shipping status, shipping zones, custom rate rules (including `deliveryTime`), and carrier integrations.
+- **Permissions**: `settings:write`
+- **Request Body**:
+  ```json
+  {
+    "enabled": true,
+    "zones": [
+      {
+        "name": "Domestic",
+        "countries": ["India"],
+        "states": ["IN:PB"],
+        "rates": [
+          {
+            "name": "Express",
+            "type": "flat",
+            "price": 100,
+            "deliveryTime": "1-2 business days",
+            "active": true
+          }
+        ],
+        "active": true
+      }
+    ],
+    "carriers": { ... }
+  }
+  ```
+- **Response**: `200 OK`.
+
+---
+
+## Storefront Public & Shipping
+Public endpoints used by the storefront for configuration and shipping calculations.
+
+#### `GET /storefront/settings`
+Fetch public storefront configuration (tax rules, country/state lists, currency).
+- **Behavior**: When shipping is enabled globally, `countriesConfig` and `taxRules` are dynamically filtered to return only countries and states covered by active shipping zones.
+- **Response**: `200 OK` with `{ "taxes": { ... }, "general": { "currency": "INR" } }`.
+
+#### `POST /storefront/shipping/rates`
+Calculate available shipping rates based on destination address, cart weight, and subtotal.
+- **Request Body**:
+  ```json
+  {
+    "destCountry": "India",
+    "destState": "Punjab",
+    "destPostcode": "141001",
+    "totalWeight": 500,
+    "subtotal": 1000
+  }
+  ```
+- **Response**: `200 OK` with `{ "rates": [ { "id": "...", "name": "Express", "price": 100, "type": "custom_flat", "deliveryTime": "1-2 business days" } ] }`.
+
+---
+
 ## Error Handling
 The API uses standard HTTP status codes:
 - `400 Bad Request`: Validation or signature verification errors.

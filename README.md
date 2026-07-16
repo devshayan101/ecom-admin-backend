@@ -2,18 +2,19 @@
 
 A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, and MongoDB.
 
-## Tech Stack
+## Tech Stack & Features
 - **Framework**: [Hono](https://hono.dev/)
 - **Runtime**: Node.js
-- **Database**: MongoDB (via Mongoose)
+- **Database**: MongoDB (via Mongoose) with singleton Settings enforcement
 - **Background Tasks**: BullMQ (with Redis)
 - **Service Integration**:
   - **Payments**: Stripe
   - **Storage**: Cloudflare R2
   - **Email**: Resend
   - **Secrets**: AWS Secrets Manager
-- **Validation**: Zod
+- **Validation**: Zod (Route boundary validation for Settings & APIs)
 - **Authentication**: JWT (RS256)
+- **Shipping Engine**: Dynamic zone matching with active shipping zone checkout filtering and custom rate delivery times
 
 ## Setup Instructions
 
