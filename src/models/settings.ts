@@ -35,6 +35,7 @@ export interface ICustomRate {
     minLimit?: number; // in grams for weight_based, in cents/currency for price_based
     maxLimit?: number; // in grams for weight_based, in cents/currency for price_based
     active: boolean;
+    deliveryTime?: string;
 }
 
 export interface ICarrierConfig {
@@ -120,7 +121,8 @@ const customRateSchema = new Schema<ICustomRate>({
     price: { type: Number, required: true, min: 0 },
     minLimit: { type: Number, default: 0 },
     maxLimit: { type: Number },
-    active: { type: Boolean, default: true }
+    active: { type: Boolean, default: true },
+    deliveryTime: { type: String, default: "" }
 });
 
 const carrierConfigSchema = new Schema<ICarrierConfig>({

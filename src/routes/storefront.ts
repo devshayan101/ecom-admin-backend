@@ -36,8 +36,55 @@ storefront.get('/settings', async (c) => {
     if (!settings) {
         return c.json({ taxes: { taxRules: [], gstVatSettings: { enabled: false, inclusive: false } } });
     }
+
+    let countriesConfig = settings.taxes?.countriesConfig || [];
+    let taxRules = settings.taxes?.taxRules || [];
+
+    if (settings.shipping && settings.shipping.enabled) {
+        const activeZones = (settings.shipping.zones || []).filter((z: any) => z.active);
+        
+        countriesConfig = countriesConfig.map((country: any) => {
+            const isCountryInActiveZone = activeZones.some((zone: any) => 
+                zone.countries.length === 0 || zone.countries.some((cName: string) => cName.toLowerCase() === country.name.toLowerCase())
+            );
+
+            if (!isCountryInActiveZone) {
+                return null;
+            }
+
+            const countryStates = country.states || [];
+            const filteredStates = countryStates.filter((state: any) => {
+                const stateKey = `${country.code}:${state.code}`;
+                return activeZones.some((zone: any) => {
+                    const countryMatch = zone.countries.length === 0 || zone.countries.some((cName: string) => cName.toLowerCase() === country.name.toLowerCase());
+                    if (!countryMatch) return false;
+                    return zone.states.length === 0 || zone.states.some((sKey: string) => sKey.toLowerCase() === stateKey.toLowerCase() || sKey.toLowerCase() === state.name.toLowerCase() || sKey.toLowerCase() === state.code.toLowerCase());
+                });
+            });
+
+            return {
+                ...country,
+                states: filteredStates
+            };
+        }).filter(Boolean) as any[];
+
+        taxRules = taxRules.filter((rule: any) => {
+            return activeZones.some((zone: any) => {
+                const countryMatch = zone.countries.length === 0 || zone.countries.some((cName: string) => cName.toLowerCase() === rule.country.toLowerCase());
+                if (!countryMatch) return false;
+                
+                const stateKey = `${rule.countryCode}:${rule.stateCode}`;
+                return zone.states.length === 0 || zone.states.some((sKey: string) => sKey.toLowerCase() === stateKey.toLowerCase() || sKey.toLowerCase() === rule.state.toLowerCase() || sKey.toLowerCase() === rule.stateCode.toLowerCase());
+            });
+        });
+    }
+
     return c.json({
-        taxes: settings.taxes,
+        taxes: {
+            ...settings.taxes,
+            countriesConfig,
+            taxRules
+        },
         general: {
             currency: settings.general?.currency || 'INR',
         }
@@ -516,7 +563,8 @@ storefront.post('/shipping/rates', async (c) => {
                     name: rate.name,
                     price: rate.price,
                     type: 'custom_flat',
-                    estimatedDays: 3
+                    estimatedDays: 3,
+                    deliveryTime: (rate as any).deliveryTime
                 });
             } else if (rate.type === 'price_based') {
                 const min = rate.minLimit || 0;
@@ -527,7 +575,8 @@ storefront.post('/shipping/rates', async (c) => {
                         name: rate.name,
                         price: rate.price,
                         type: 'custom_price',
-                        estimatedDays: 3
+                        estimatedDays: 3,
+                        deliveryTime: (rate as any).deliveryTime
                     });
                 }
             } else if (rate.type === 'weight_based') {
@@ -539,7 +588,8 @@ storefront.post('/shipping/rates', async (c) => {
                         name: rate.name,
                         price: rate.price,
                         type: 'custom_weight',
-                        estimatedDays: 3
+                        estimatedDays: 3,
+                        deliveryTime: (rate as any).deliveryTime
                     });
                 }
             }

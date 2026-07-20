@@ -131,4 +131,111 @@ describe('Settings Flow Integration Tests', () => {
         expect(res.status).toBe(422);
         expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
+
+    it('should filter storefront settings based on active shipping zones', async () => {
+        // Setup countriesConfig and active/inactive shipping zones
+        const settings = await settingsService.getSettings();
+        settings.taxes.countriesConfig = [
+            {
+                name: 'United States',
+                code: 'US',
+                states: [
+                    { name: 'California', code: 'CA' },
+                    { name: 'New York', code: 'NY' }
+                ]
+            },
+            {
+                name: 'India',
+                code: 'IN',
+                states: [
+                    { name: 'Punjab', code: 'PB' },
+                    { name: 'Delhi', code: 'DL' }
+                ]
+            }
+        ];
+        settings.shipping = {
+            enabled: true,
+            zones: [
+                {
+                    name: 'US West',
+                    countries: ['United States'],
+                    states: ['US:CA'],
+                    rates: [],
+                    active: true
+                },
+                {
+                    name: 'India Region',
+                    countries: ['India'],
+                    states: [], // Empty states => all states are allowed
+                    rates: [],
+                    active: false // Inactive zone, should filter out India
+                }
+            ],
+            carriers: {
+                delhivery: { enabled: false, sandbox: true, apiKey: "" },
+                fedex: { enabled: false, sandbox: true, apiKey: "" },
+                dhl: { enabled: false, sandbox: true, apiKey: "" }
+            }
+        };
+        await settings.save();
+
+        const res = await request(handler)
+            .get('/storefront/settings');
+
+        expect(res.status).toBe(200);
+        const countries = res.body.taxes.countriesConfig;
+        
+        // India is inactive, United States is active
+        expect(countries).toHaveLength(1);
+        expect(countries[0].name).toBe('United States');
+        
+        // Only California is in the active zone
+        expect(countries[0].states).toHaveLength(1);
+        expect(countries[0].states[0].name).toBe('California');
+    });
+
+    it('should return deliveryTime for matched custom shipping rates', async () => {
+        const settings = await settingsService.getSettings();
+        settings.shipping = {
+            enabled: true,
+            zones: [
+                {
+                    name: 'Domestic',
+                    countries: ['India'],
+                    states: [],
+                    rates: [
+                        {
+                            name: 'Express Shipping',
+                            type: 'flat',
+                            price: 150,
+                            active: true,
+                            deliveryTime: '1-2 business days'
+                        }
+                    ],
+                    active: true
+                }
+            ],
+            carriers: {
+                delhivery: { enabled: false, sandbox: true, apiKey: "" },
+                fedex: { enabled: false, sandbox: true, apiKey: "" },
+                dhl: { enabled: false, sandbox: true, apiKey: "" }
+            }
+        };
+        await settings.save();
+
+        const res = await request(handler)
+            .post('/storefront/shipping/rates')
+            .send({
+                destCountry: 'India',
+                destState: 'Punjab',
+                destPostcode: '141001',
+                subtotal: 1000,
+                totalWeight: 500
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.rates).toHaveLength(1);
+        expect(res.body.rates[0].name).toBe('Express Shipping');
+        expect(res.body.rates[0].deliveryTime).toBe('1-2 business days');
+    });
 });
