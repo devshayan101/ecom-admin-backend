@@ -15,6 +15,7 @@ import { getRedis } from '../utils/redisClient';
 import { passwordResetQueue } from '../queues/queues';
 import { customerAuthMiddleware, optionalCustomerAuthMiddleware, CustomerEnv } from '../middleware/customerAuth';
 import { SettingsModel } from '../models/settings';
+import { SETTINGS_ID } from '../services/settingsService';
 import { getCarrierRates } from '../services/carrierService';
 
 const storefront = new Hono<CustomerEnv>();
@@ -32,7 +33,7 @@ storefront.get('/categories', async (c) => {
 
 // GET /storefront/settings -> Public settings (taxes config, currency)
 storefront.get('/settings', async (c) => {
-    const settings = await SettingsModel.findOne({}).lean();
+    const settings = await SettingsModel.findOne({ _id: SETTINGS_ID }).lean();
     if (!settings) {
         return c.json({ taxes: { taxRules: [], gstVatSettings: { enabled: false, inclusive: false } } });
     }
@@ -506,7 +507,7 @@ storefront.post('/shipping/rates', async (c) => {
         throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'Destination country is required');
     }
 
-    const settings = await SettingsModel.findOne({});
+    const settings = await SettingsModel.findOne({ _id: SETTINGS_ID });
     if (!settings || !settings.shipping || !settings.shipping.enabled) {
         return c.json({ rates: [] });
     }

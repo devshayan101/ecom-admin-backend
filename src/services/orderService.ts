@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { OrderModel, IOrder, OrderStatus } from '../models/order';
 import { SettingsModel } from '../models/settings';
+import { SETTINGS_ID } from './settingsService';
 import { ProductModel } from '../models/product';
 import { AppError, ErrorCodes } from '../utils/errors';
 import { getRedis } from '../utils/redisClient';
@@ -77,7 +78,7 @@ export async function createOrder(body: {
     const payment_method = body.payment_method || 'STRIPE';
 
     // Calculate tax-inclusive prices and total amount based on settings and slabs
-    const settings = await SettingsModel.findOne({});
+    const settings = await SettingsModel.findOne({ _id: SETTINGS_ID });
     const inclusive = settings?.taxes?.gstVatSettings?.inclusive ?? false;
     const taxRules = settings?.taxes?.taxRules ?? [];
 

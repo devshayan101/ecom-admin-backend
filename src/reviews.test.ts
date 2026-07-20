@@ -30,6 +30,7 @@ import { CategoryModel } from './models/category';
 import { CustomerModel } from './models/customer';
 import { ReviewModel } from './models/review';
 import { SettingsModel } from './models/settings';
+import { SETTINGS_ID } from './services/settingsService';
 import { getRequestListener } from '@hono/node-server';
 import jwt from 'jsonwebtoken';
 import { generateKeyPairSync } from 'crypto';
@@ -126,6 +127,7 @@ describe('Reviews Flow Integration Tests', () => {
         
         // Seed default settings
         await SettingsModel.create({
+            _id: SETTINGS_ID,
             general: { storeName: 'Test Store', storeEmail: 'test@store.com', storePhone: '000', currency: 'INR', timeZone: 'UTC', language: 'en' },
             taxes: { taxRules: [], gstVatSettings: { enabled: false, inclusive: false } },
             reviews: { auto_publish: false } // manual approval by default

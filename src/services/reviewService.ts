@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { ReviewModel, IReview } from '../models/review';
 import { ProductModel } from '../models/product';
 import { SettingsModel } from '../models/settings';
+import { SETTINGS_ID } from './settingsService';
 import { AppError, ErrorCodes } from '../utils/errors';
 import { parsePaginationParams, buildCursorQuery, buildPaginationResult } from '../utils/pagination';
 
@@ -42,7 +43,7 @@ export async function createReview(
     }
 
     // Get settings to check moderation policy
-    const settings = await SettingsModel.findOne({}).lean();
+    const settings = await SettingsModel.findOne({ _id: SETTINGS_ID }).lean();
     const autoPublish = settings?.reviews?.auto_publish ?? false;
     const status = autoPublish ? 'approved' : 'pending';
 
