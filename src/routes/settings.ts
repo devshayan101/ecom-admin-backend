@@ -43,16 +43,26 @@ const updateTaxSettingsSchema = z.object({
 const paymentGatewayConfigSchema = z.object({
     enabled: z.boolean(),
     sandbox: z.boolean(),
-    keyId: z.string().default(''),
-    secretKey: z.string().default(''),
-    webhookSecret: z.string().default(''),
+    keyId: z.string().optional(),
+    secretKey: z.string().optional(),
+    webhookSecret: z.string().optional(),
 });
 
 const codSettingsSchema = z.object({
     enabled: z.boolean(),
-    minOrderAmount: z.number().default(0),
-    maxOrderAmount: z.number().default(0),
-    instructions: z.string().default(''),
+    minOrderAmount: z.number().min(0, 'Minimum order amount must be non-negative').optional(),
+    maxOrderAmount: z.number().min(0, 'Maximum order amount must be non-negative').optional(),
+    instructions: z.string().optional(),
+}).refine((data) => {
+    const min = data.minOrderAmount ?? 0;
+    const max = data.maxOrderAmount ?? 0;
+    if (max > 0 && min > max) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Minimum order amount cannot exceed maximum order amount",
+    path: ["minOrderAmount"],
 });
 
 const updatePaymentsSettingsSchema = z.object({

@@ -43,6 +43,34 @@ export async function getSettings(): Promise<ISettings> {
         },
         { new: true, upsert: true }
     );
+
+    let needsSave = false;
+    if (!settings.payments) {
+        settings.payments = {
+            razorpay: { enabled: false, sandbox: true, keyId: "", secretKey: "", webhookSecret: "" },
+            stripe: { enabled: false, sandbox: true, keyId: "", secretKey: "", webhookSecret: "" },
+            cod: { enabled: false, minOrderAmount: 0, maxOrderAmount: 0, instructions: "" }
+        };
+        needsSave = true;
+    } else {
+        if (!settings.payments.razorpay) {
+            settings.payments.razorpay = { enabled: false, sandbox: true, keyId: "", secretKey: "", webhookSecret: "" };
+            needsSave = true;
+        }
+        if (!settings.payments.stripe) {
+            settings.payments.stripe = { enabled: false, sandbox: true, keyId: "", secretKey: "", webhookSecret: "" };
+            needsSave = true;
+        }
+        if (!settings.payments.cod) {
+            settings.payments.cod = { enabled: false, minOrderAmount: 0, maxOrderAmount: 0, instructions: "" };
+            needsSave = true;
+        }
+    }
+
+    if (needsSave) {
+        await settings.save();
+    }
+
     return settings;
 }
 
@@ -158,29 +186,32 @@ export async function updatePaymentSettings(data: {
         };
     }
     if (data.razorpay !== undefined) {
-        const oldSecretKey = settings.payments?.razorpay?.secretKey;
-        const oldWebhookSecret = settings.payments?.razorpay?.webhookSecret;
-        settings.payments.razorpay = data.razorpay;
-        if (data.razorpay.secretKey === "••••••••••••••••" && oldSecretKey) {
-            settings.payments.razorpay.secretKey = oldSecretKey;
+        if (data.razorpay.enabled !== undefined) settings.payments.razorpay.enabled = data.razorpay.enabled;
+        if (data.razorpay.sandbox !== undefined) settings.payments.razorpay.sandbox = data.razorpay.sandbox;
+        if (data.razorpay.keyId !== undefined) settings.payments.razorpay.keyId = data.razorpay.keyId;
+        if (data.razorpay.secretKey !== undefined && data.razorpay.secretKey !== "••••••••••••••••") {
+            settings.payments.razorpay.secretKey = data.razorpay.secretKey;
         }
-        if (data.razorpay.webhookSecret === "••••••••••••••••" && oldWebhookSecret) {
-            settings.payments.razorpay.webhookSecret = oldWebhookSecret;
+        if (data.razorpay.webhookSecret !== undefined && data.razorpay.webhookSecret !== "••••••••••••••••") {
+            settings.payments.razorpay.webhookSecret = data.razorpay.webhookSecret;
         }
     }
     if (data.stripe !== undefined) {
-        const oldSecretKey = settings.payments?.stripe?.secretKey;
-        const oldWebhookSecret = settings.payments?.stripe?.webhookSecret;
-        settings.payments.stripe = data.stripe;
-        if (data.stripe.secretKey === "••••••••••••••••" && oldSecretKey) {
-            settings.payments.stripe.secretKey = oldSecretKey;
+        if (data.stripe.enabled !== undefined) settings.payments.stripe.enabled = data.stripe.enabled;
+        if (data.stripe.sandbox !== undefined) settings.payments.stripe.sandbox = data.stripe.sandbox;
+        if (data.stripe.keyId !== undefined) settings.payments.stripe.keyId = data.stripe.keyId;
+        if (data.stripe.secretKey !== undefined && data.stripe.secretKey !== "••••••••••••••••") {
+            settings.payments.stripe.secretKey = data.stripe.secretKey;
         }
-        if (data.stripe.webhookSecret === "••••••••••••••••" && oldWebhookSecret) {
-            settings.payments.stripe.webhookSecret = oldWebhookSecret;
+        if (data.stripe.webhookSecret !== undefined && data.stripe.webhookSecret !== "••••••••••••••••") {
+            settings.payments.stripe.webhookSecret = data.stripe.webhookSecret;
         }
     }
     if (data.cod !== undefined) {
-        settings.payments.cod = data.cod;
+        if (data.cod.enabled !== undefined) settings.payments.cod.enabled = data.cod.enabled;
+        if (data.cod.minOrderAmount !== undefined) settings.payments.cod.minOrderAmount = data.cod.minOrderAmount;
+        if (data.cod.maxOrderAmount !== undefined) settings.payments.cod.maxOrderAmount = data.cod.maxOrderAmount;
+        if (data.cod.instructions !== undefined) settings.payments.cod.instructions = data.cod.instructions;
     }
     await settings.save();
     return settings;
