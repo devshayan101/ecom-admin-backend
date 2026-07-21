@@ -63,9 +63,34 @@ const updatePaymentsSettingsSchema = z.object({
 
 settings.use('/*', authMiddleware);
 
+function toPublicSettings(data: any) {
+    if (!data) return data;
+    // Handle mongoose document or plain object conversion
+    const settings = typeof data.toObject === 'function' ? data.toObject() : JSON.parse(JSON.stringify(data));
+    if (settings.payments) {
+        if (settings.payments.razorpay) {
+            if (settings.payments.razorpay.secretKey) {
+                settings.payments.razorpay.secretKey = "••••••••••••••••";
+            }
+            if (settings.payments.razorpay.webhookSecret) {
+                settings.payments.razorpay.webhookSecret = "••••••••••••••••";
+            }
+        }
+        if (settings.payments.stripe) {
+            if (settings.payments.stripe.secretKey) {
+                settings.payments.stripe.secretKey = "••••••••••••••••";
+            }
+            if (settings.payments.stripe.webhookSecret) {
+                settings.payments.stripe.webhookSecret = "••••••••••••••••";
+            }
+        }
+    }
+    return settings;
+}
+
 settings.get('/', requirePermission('settings:read'), async (c) => {
     const data = await settingsService.getSettings();
-    return c.json(data);
+    return c.json(toPublicSettings(data));
 });
 
 settings.put('/general', requirePermission('settings:write'), async (c) => {
@@ -91,7 +116,7 @@ settings.put('/payments', requirePermission('settings:write'), async (c) => {
     const body = await c.req.json();
     const validatedData = updatePaymentsSettingsSchema.parse(body);
     const data = await settingsService.updatePaymentSettings(validatedData);
-    return c.json(data);
+    return c.json(toPublicSettings(data));
 });
 
 export default settings;
