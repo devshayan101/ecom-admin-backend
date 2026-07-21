@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { OrderModel, IOrder, OrderStatus } from '../models/order';
 import { SettingsModel } from '../models/settings';
@@ -6,10 +7,12 @@ import { ProductModel } from '../models/product';
 import { AppError, ErrorCodes } from '../utils/errors';
 import { getRedis } from '../utils/redisClient';
 import { getStripe } from '../utils/stripeClient';
+import { getRazorpay } from '../utils/razorpayClient';
 import { config } from '../config/secrets';
 import * as inventoryService from './inventoryService';
 import { writeSystemAuditLog } from '../middleware/auditLog';
 import { parsePaginationParams, buildCursorQuery, buildPaginationResult } from '../utils/pagination';
+import { orderNotifyQueue } from '../queues/queues';
 
 // Valid transitions per PRD §4.6
 const VALID_TRANSITIONS: Record<string, { to: OrderStatus[]; requiresUnpaid?: boolean }> = {
@@ -66,7 +69,7 @@ export async function createOrder(body: {
     shipping_cost?: number;
     shipping_rate_name?: string;
     idempotency_key: string;
-    payment_method?: 'STRIPE' | 'COD';
+    payment_method?: 'STRIPE' | 'RAZORPAY' | 'COD';
 }) {
     const redis = getRedis();
     const idemKey = `idem:${body.idempotency_key}`;
@@ -187,7 +190,7 @@ export async function createOrder(body: {
     const shipping_cost = body.shipping_cost || 0;
     const shipping_rate_name = body.shipping_rate_name || '';
     const total_amount = calculatedItems.reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0) + shipping_cost;
-    const paymentDeadline = payment_method === 'STRIPE'
+    const paymentDeadline = (payment_method === 'STRIPE' || payment_method === 'RAZORPAY')
         ? new Date(Date.now() + config.paymentDeadlineMinutes * 60 * 1000)
         : null;
 
@@ -229,6 +232,7 @@ export async function createOrder(body: {
     }
 
     let client_secret: string | undefined;
+    let razorpay_order: { razorpay_order_id: string; razorpay_key_id: string; amount: number; currency: string } | undefined;
 
     if (payment_method === 'STRIPE') {
         // Create Stripe PaymentIntent (after transaction commit)
@@ -271,9 +275,53 @@ export async function createOrder(body: {
                 'Failed to create payment intent. Order has been cancelled.'
             );
         }
+    } else if (payment_method === 'RAZORPAY') {
+        try {
+            const razorpay = getRazorpay();
+            const rzpOrder = await razorpay.orders.create({
+                amount: Math.round(total_amount * 100), // paise
+                currency: 'INR',
+                receipt: order._id.toString(),
+                notes: { order_id: order._id.toString() }
+            });
+
+            await OrderModel.updateOne({ _id: order._id }, {
+                razorpay_order_id: rzpOrder.id,
+            });
+
+            razorpay_order = {
+                razorpay_order_id: rzpOrder.id,
+                razorpay_key_id: config.razorpayKeyId,
+                amount: Math.round(total_amount * 100),
+                currency: 'INR',
+            };
+        } catch (rzpErr) {
+            const compSession = await mongoose.startSession();
+            try {
+                compSession.startTransaction();
+                await OrderModel.updateOne(
+                    { _id: order._id },
+                    { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
+                    { session: compSession }
+                );
+                for (const item of body.items) {
+                    await inventoryService.releaseReservation(item.variant_id, item.quantity);
+                }
+                await compSession.commitTransaction();
+            } catch {
+                await compSession.abortTransaction();
+            } finally {
+                await compSession.endSession();
+            }
+            throw new AppError(
+                ErrorCodes.PAYMENT_INTENT_FAILED.code,
+                ErrorCodes.PAYMENT_INTENT_FAILED.statusCode,
+                'Failed to create Razorpay order. Order has been cancelled.'
+            );
+        }
     }
 
-    const result = { order: order.toObject(), client_secret };
+    const result = { order: order.toObject(), client_secret, razorpay_order };
 
     // Cache idempotency result (24h)
     await redis.set(idemKey, JSON.stringify(result), 'EX', 86400);
@@ -320,5 +368,72 @@ export async function handleLateStripeSuccess(orderId: string, eventId: string) 
         entityType: 'order',
         entityId: orderId,
         changes: { after: { stripe_event_id: eventId, note: 'Late payment after timeout cancellation. Requires manual refund.' } },
+    });
+}
+
+export async function verifyRazorpayPayment(
+    orderId: string,
+    razorpayPaymentId: string,
+    razorpayOrderId: string,
+    razorpaySignature: string
+) {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+        throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, 'Order not found');
+    }
+
+    if (order.payment_status === 'PAID') {
+        return order;
+    }
+
+    if (order.status === 'CANCELLED') {
+        await handleLateRazorpaySuccess(orderId, razorpayPaymentId);
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Order was already cancelled due to timeout.');
+    }
+
+    // Verify HMAC signature
+    const generatedSignature = crypto
+        .createHmac('sha256', config.razorpayKeySecret)
+        .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+        .digest('hex');
+
+    if (generatedSignature !== razorpaySignature) {
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Invalid Razorpay payment signature');
+    }
+
+    order.payment_status = 'PAID';
+    order.status = 'CONFIRMED';
+    order.paid_at = new Date();
+    order.razorpay_order_id = razorpayOrderId;
+    order.razorpay_payment_id = razorpayPaymentId;
+    order.razorpay_signature = razorpaySignature;
+    await order.save();
+
+    // Queue order confirmation notification
+    await orderNotifyQueue.add('order-confirmed', {
+        orderId: order._id.toString(),
+        type: 'CONFIRMED',
+    }).catch(() => {});
+
+    await writeSystemAuditLog({
+        actorType: 'system',
+        action: 'ORDER_PAID',
+        result: 'success',
+        entityType: 'order',
+        entityId: order._id.toString(),
+        changes: { after: { payment_method: 'RAZORPAY', razorpay_payment_id: razorpayPaymentId } }
+    });
+
+    return order;
+}
+
+export async function handleLateRazorpaySuccess(orderId: string, paymentId: string) {
+    await writeSystemAuditLog({
+        actorType: 'webhook',
+        action: 'MANUAL_REMEDIATION_REQUIRED',
+        result: 'success',
+        entityType: 'order',
+        entityId: orderId,
+        changes: { after: { razorpay_payment_id: paymentId, note: 'Late payment after timeout cancellation. Requires manual refund.' } },
     });
 }

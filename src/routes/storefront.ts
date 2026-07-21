@@ -459,6 +459,24 @@ storefront.post('/checkout', optionalCustomerAuthMiddleware, async (c) => {
     }, 201);
 });
 
+// POST /storefront/verify-razorpay -> Instant Razorpay payment signature verification
+storefront.post('/verify-razorpay', async (c) => {
+    const { order_id, razorpay_payment_id, razorpay_order_id, razorpay_signature } = await c.req.json();
+
+    if (!order_id || !razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'Missing required Razorpay verification fields');
+    }
+
+    const order = await orderService.verifyRazorpayPayment(
+        order_id,
+        razorpay_payment_id,
+        razorpay_order_id,
+        razorpay_signature
+    );
+
+    return c.json({ message: 'Razorpay payment verified successfully', order });
+});
+
 // --- Storefront Reviews Routes ---
 
 // GET /storefront/products/:id/reviews -> Get approved reviews for a product

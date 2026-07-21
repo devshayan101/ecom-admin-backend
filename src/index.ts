@@ -28,6 +28,7 @@ import reviewRoutes from './routes/reviews';
 import { startLowStockAlertWorker } from './workers/lowStockAlert';
 import { startOrderNotificationWorker } from './workers/orderNotification';
 import { startStripeProcessorWorker } from './workers/stripeProcessor';
+import { startRazorpayProcessorWorker } from './workers/razorpayProcessor';
 import { startDlqAlertWorker } from './workers/dlqAlert';
 import { startDashboardCronWorker } from './workers/dashboardCron';
 import { startPasswordResetEmailWorker } from './workers/passwordResetEmail';
@@ -92,6 +93,7 @@ async function main() {
     startLowStockAlertWorker();
     startOrderNotificationWorker();
     startStripeProcessorWorker();
+    startRazorpayProcessorWorker();
     startDlqAlertWorker();
     startDashboardCronWorker();
     startPasswordResetEmailWorker();

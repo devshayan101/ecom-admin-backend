@@ -1,8 +1,9 @@
+import crypto from 'crypto';
 import { Hono } from 'hono';
 import { getStripe } from '../utils/stripeClient';
 import { getRedis } from '../utils/redisClient';
 import { config } from '../config/secrets';
-import { stripeEventQueue } from '../queues/queues';
+import { stripeEventQueue, razorpayEventQueue } from '../queues/queues';
 
 const webhooks = new Hono();
 
@@ -38,6 +39,49 @@ webhooks.post('/stripe', async (c) => {
         type: event.type,
         paymentIntentId: (event.data.object as any).id,
         metadata: (event.data.object as any).metadata,
+    });
+
+    return c.json({ received: true });
+});
+
+// POST /webhooks/razorpay — raw body HMAC signature verification
+webhooks.post('/razorpay', async (c) => {
+    const signature = c.req.header('x-razorpay-signature');
+    if (!signature) {
+        return c.json({ error: { code: 'UNAUTHORIZED', message: 'Missing x-razorpay-signature' } }, 400);
+    }
+
+    const rawBody = await c.req.text();
+    if (config.razorpayWebhookSecret) {
+        const expectedSignature = crypto
+            .createHmac('sha256', config.razorpayWebhookSecret)
+            .update(rawBody)
+            .digest('hex');
+
+        if (expectedSignature !== signature) {
+            return c.json({ error: { code: 'UNAUTHORIZED', message: 'Webhook signature verification failed' } }, 400);
+        }
+    }
+
+    let payload: any;
+    try {
+        payload = JSON.parse(rawBody);
+    } catch {
+        return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid JSON payload' } }, 400);
+    }
+
+    const eventId = payload.event_id || c.req.header('x-razorpay-event-id') || `rzp_evt_${Date.now()}`;
+    const redis = getRedis();
+    const dedupeKey = `razorpay_ingress:${eventId}`;
+    const isNew = await redis.set(dedupeKey, '1', 'EX', 86400, 'NX');
+    if (!isNew) {
+        return c.json({ received: true });
+    }
+
+    await razorpayEventQueue.add('razorpay-event', {
+        eventId,
+        event: payload.event,
+        payload: payload.payload,
     });
 
     return c.json({ received: true });

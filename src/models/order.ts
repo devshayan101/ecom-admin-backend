@@ -18,7 +18,7 @@ export interface IShippingAddress {
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 export type PaymentStatus = 'UNPAID' | 'PAID';
-export type PaymentMethod = 'STRIPE' | 'COD';
+export type PaymentMethod = 'STRIPE' | 'RAZORPAY' | 'COD';
 export type CancelReason = 'PAYMENT_TIMEOUT' | 'ADMIN_CANCELLED' | 'MANUAL_REMEDIATION' | null;
 
 export interface IOrder extends Document {
@@ -27,6 +27,9 @@ export interface IOrder extends Document {
     payment_status: PaymentStatus;
     payment_method: PaymentMethod;
     stripe_payment_intent_id: string;
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
     idempotency_key: string;
     payment_deadline_at: Date | null;
     paid_at: Date | null;
@@ -60,8 +63,11 @@ const orderSchema = new Schema<IOrder>({
     customer_id: { type: Schema.Types.ObjectId, ref: 'Customer', required: true },
     status: { type: String, enum: ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'], default: 'PENDING' },
     payment_status: { type: String, enum: ['UNPAID', 'PAID'], default: 'UNPAID' },
-    payment_method: { type: String, enum: ['STRIPE', 'COD'], default: 'STRIPE' },
+    payment_method: { type: String, enum: ['STRIPE', 'RAZORPAY', 'COD'], default: 'STRIPE' },
     stripe_payment_intent_id: { type: String, default: '' },
+    razorpay_order_id: { type: String, default: '' },
+    razorpay_payment_id: { type: String, default: '' },
+    razorpay_signature: { type: String, default: '' },
     idempotency_key: { type: String, required: true, unique: true },
     payment_deadline_at: { type: Date, default: null },
     paid_at: { type: Date, default: null },
