@@ -15,13 +15,13 @@ jest.mock('../queues/queues', () => ({
     paymentExpiryQueue: { add: jest.fn() },
 }));
 
-import { OrderModel } from '../models/order';
-import { InventoryModel } from '../models/inventory';
-
 // Mock Audit Log System
 jest.mock('../middleware/auditLog', () => ({
     writeSystemAuditLog: jest.fn(),
 }));
+
+import { OrderModel } from '../models/order';
+import { InventoryModel } from '../models/inventory';
 
 let mongoServer: MongoMemoryServer;
 let processPaymentExpiry: any;

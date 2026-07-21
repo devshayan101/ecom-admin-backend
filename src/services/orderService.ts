@@ -110,7 +110,7 @@ export async function createOrder(body: {
             const matchedCode = normalizeCountry(rawCountry).toLowerCase();
 
             // Find resolved state codes from settings rules matching this country and state
-            const matchedRules = taxRules.filter((r: any) => 
+            const matchedRules = taxRules.filter((r: any) =>
                 (r.country.toLowerCase() === matchedCountry || (r.countryCode || '').toLowerCase() === matchedCode) &&
                 r.state.toLowerCase() === shippingState.toLowerCase()
             );
@@ -225,7 +225,9 @@ export async function createOrder(body: {
 
         await session.commitTransaction();
     } catch (err) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
         throw err;
     } finally {
         await session.endSession();
@@ -377,56 +379,84 @@ export async function verifyRazorpayPayment(
     razorpayOrderId: string,
     razorpaySignature: string
 ) {
-    const order = await OrderModel.findById(orderId);
-    if (!order) {
-        throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, 'Order not found');
-    }
-
-    if (order.payment_status === 'PAID') {
-        return order;
-    }
-
-    if (order.status === 'CANCELLED') {
-        await handleLateRazorpaySuccess(orderId, razorpayPaymentId);
-        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Order was already cancelled due to timeout.');
-    }
-
-    // Verify HMAC signature
+    // 1. Verify HMAC signature FIRST using timing-safe buffer comparison
     const generatedSignature = crypto
         .createHmac('sha256', config.razorpayKeySecret)
         .update(`${razorpayOrderId}|${razorpayPaymentId}`)
         .digest('hex');
 
-    if (generatedSignature !== razorpaySignature) {
+    const expectedBuf = Buffer.from(generatedSignature, 'utf-8');
+    const providedBuf = Buffer.from(razorpaySignature || '', 'utf-8');
+
+    if (expectedBuf.length !== providedBuf.length || !crypto.timingSafeEqual(expectedBuf, providedBuf)) {
         throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Invalid Razorpay payment signature');
     }
 
-    order.payment_status = 'PAID';
-    order.status = 'CONFIRMED';
-    order.paid_at = new Date();
-    order.razorpay_order_id = razorpayOrderId;
-    order.razorpay_payment_id = razorpayPaymentId;
-    order.razorpay_signature = razorpaySignature;
-    await order.save();
+    // 2. Wrap order status update & inventory reservation conversion in a DB transaction
+    const session = await mongoose.startSession();
+    try {
+        session.startTransaction();
 
-    // Queue order confirmation notification
-    await orderNotifyQueue.add('order-confirmed', {
-        orderId: order._id.toString(),
-        type: 'CONFIRMED',
-    }).catch(() => {});
+        const order = await OrderModel.findById(orderId).session(session);
+        if (!order) {
+            throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, 'Order not found');
+        }
 
-    await writeSystemAuditLog({
-        actorType: 'system',
-        action: 'ORDER_PAID',
-        result: 'success',
-        entityType: 'order',
-        entityId: order._id.toString(),
-        changes: { after: { payment_method: 'RAZORPAY', razorpay_payment_id: razorpayPaymentId } }
-    });
+        if (order.payment_status === 'PAID') {
+            await session.abortTransaction();
+            return order;
+        }
 
-    return order;
+        if (order.status === 'CANCELLED') {
+            await handleLateRazorpaySuccess(orderId, razorpayPaymentId);
+            throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Order was already cancelled due to timeout.');
+        }
+
+        if (order.status !== 'PENDING' || order.payment_status !== 'UNPAID') {
+            await session.abortTransaction();
+            return order;
+        }
+
+        // Convert reserved inventory to sale atomically inside transaction
+        for (const item of order.items) {
+            await inventoryService.convertReservationToSale(item.variant_id, item.quantity, session);
+        }
+
+        order.payment_status = 'PAID';
+        order.status = 'CONFIRMED';
+        order.paid_at = new Date();
+        order.razorpay_order_id = razorpayOrderId;
+        order.razorpay_payment_id = razorpayPaymentId;
+        order.razorpay_signature = razorpaySignature;
+        await order.save({ session });
+
+        await session.commitTransaction();
+
+        // Queue order confirmation notification
+        await orderNotifyQueue.add('order-confirmed', {
+            orderId: order._id.toString(),
+            type: 'CONFIRMED',
+        }).catch(() => { });
+
+        await writeSystemAuditLog({
+            actorType: 'system',
+            action: 'ORDER_PAID',
+            result: 'success',
+            entityType: 'order',
+            entityId: order._id.toString(),
+            changes: { after: { payment_method: 'RAZORPAY', razorpay_payment_id: razorpayPaymentId } }
+        });
+
+        return order;
+    } catch (err) {
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+        throw err;
+    } finally {
+        await session.endSession();
+    }
 }
-
 export async function handleLateRazorpaySuccess(orderId: string, paymentId: string) {
     await writeSystemAuditLog({
         actorType: 'webhook',

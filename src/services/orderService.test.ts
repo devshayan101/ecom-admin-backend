@@ -1,10 +1,8 @@
 import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import { createOrder, updateOrderStatus } from './orderService';
-import { OrderModel } from '../models/order';
-import { InventoryModel } from '../models/inventory';
-import { ProductModel } from '../models/product';
+import crypto from 'crypto';
+import { config } from '../config/secrets';
 
 // Mock Redis
 const redisMock: any = {
@@ -13,6 +11,7 @@ const redisMock: any = {
 };
 jest.mock('../utils/redisClient', () => ({
     getRedis: () => redisMock,
+    getRedisOptions: () => ({}),
 }));
 
 // Mock Stripe
@@ -27,9 +26,22 @@ jest.mock('../utils/stripeClient', () => ({
 
 // Mock BullMQ
 jest.mock('../queues/queues', () => ({
-    orderNotifyQueue: { add: jest.fn() },
-    paymentExpiryQueue: { add: jest.fn() },
+    orderNotifyQueue: { add: jest.fn(() => Promise.resolve()) },
+    paymentExpiryQueue: { add: jest.fn(() => Promise.resolve()) },
 }));
+
+// Mock Audit Log System
+jest.mock('../middleware/auditLog', () => ({
+    writeSystemAuditLog: jest.fn(),
+}));
+
+import { OrderModel } from '../models/order';
+import { InventoryModel } from '../models/inventory';
+import { ProductModel } from '../models/product';
+
+let createOrder: any;
+let updateOrderStatus: any;
+let verifyRazorpayPayment: any;
 
 let mongoReplSet: MongoMemoryReplSet;
 
@@ -39,6 +51,11 @@ beforeAll(async () => {
     await InventoryModel.ensureIndexes();
     await OrderModel.ensureIndexes();
     await ProductModel.ensureIndexes();
+
+    const mod = await import('./orderService');
+    createOrder = mod.createOrder;
+    updateOrderStatus = mod.updateOrderStatus;
+    verifyRazorpayPayment = mod.verifyRazorpayPayment;
 });
 
 afterAll(async () => {
@@ -129,7 +146,13 @@ describe('OrderService', () => {
                 idempotency_key: 'idem-2',
             };
 
-            await expect(createOrder(orderData)).rejects.toThrow();
+            let error: any;
+            try {
+                await createOrder(orderData);
+            } catch (err) {
+                error = err;
+            }
+            expect(error).toBeDefined();
 
             const inv = await InventoryModel.findById(variantId);
             expect(inv?.reserved).toBe(0); // Rollback happened
@@ -167,7 +190,109 @@ describe('OrderService', () => {
                 shipping_address: { recipient_name: 'John', street: '123 St', city: 'City', state: 'ST', postcode: '12345', country: 'US' },
             });
 
-            await expect(updateOrderStatus(order._id.toString(), 'DELIVERED')).rejects.toThrow();
+            let error: any;
+            try {
+                await updateOrderStatus(order._id.toString(), 'DELIVERED');
+            } catch (err) {
+                error = err;
+            }
+            expect(error).toBeDefined();
+        });
+    });
+
+    describe('verifyRazorpayPayment', () => {
+        const razorpayOrderId = 'order_rzp_123';
+        const razorpayPaymentId = 'pay_rzp_123';
+
+        function computeSignature(orderId: string, payId: string) {
+            return crypto
+                .createHmac('sha256', config.razorpayKeySecret)
+                .update(`${orderId}|${payId}`)
+                .digest('hex');
+        }
+
+        it('should verify payment, convert reservation to sale, and mark order PAID', async () => {
+            // Reserve inventory
+            await InventoryModel.updateOne({ _id: variantId }, { $inc: { reserved: 2 } });
+
+            const order = await OrderModel.create({
+                customer_id: new mongoose.Types.ObjectId(),
+                status: 'PENDING',
+                payment_status: 'UNPAID',
+                payment_method: 'RAZORPAY',
+                items: [{ variant_id: variantId, sku: 'SKU-1', quantity: 2, price_at_purchase: 100 }],
+                total_amount: 200,
+                idempotency_key: 'idem-rzp-1',
+                shipping_address: { recipient_name: 'John', street: '123 St', city: 'City', state: 'ST', postcode: '12345', country: 'IN' },
+            });
+
+            const validSig = computeSignature(razorpayOrderId, razorpayPaymentId);
+            const updatedOrder = await verifyRazorpayPayment(
+                order._id.toString(),
+                razorpayPaymentId,
+                razorpayOrderId,
+                validSig
+            );
+
+            expect(updatedOrder.payment_status).toBe('PAID');
+            expect(updatedOrder.status).toBe('CONFIRMED');
+
+            // Verify inventory converted reservation to sale (stock: 10->8, reserved: 2->0)
+            const inv = await InventoryModel.findById(variantId);
+            expect(inv?.stock).toBe(8);
+            expect(inv?.reserved).toBe(0);
+        });
+
+        it('should throw error for invalid HMAC signature', async () => {
+            const order = await OrderModel.create({
+                customer_id: new mongoose.Types.ObjectId(),
+                status: 'PENDING',
+                payment_status: 'UNPAID',
+                items: [{ variant_id: variantId, sku: 'SKU-1', quantity: 1, price_at_purchase: 100 }],
+                total_amount: 100,
+                idempotency_key: 'idem-rzp-2',
+                shipping_address: { recipient_name: 'John', street: '123 St', city: 'City', state: 'ST', postcode: '12345', country: 'IN' },
+            });
+
+            let error: any;
+            try {
+                await verifyRazorpayPayment(
+                    order._id.toString(),
+                    razorpayPaymentId,
+                    razorpayOrderId,
+                    'invalid_signature'
+                );
+            } catch (err) {
+                error = err;
+            }
+            expect(error).toBeDefined();
+            expect(error.message).toContain('Invalid Razorpay payment signature');
+        });
+
+        it('should reject invalid signature BEFORE checking cancelled order status', async () => {
+            const cancelledOrder = await OrderModel.create({
+                customer_id: new mongoose.Types.ObjectId(),
+                status: 'CANCELLED',
+                payment_status: 'UNPAID',
+                items: [{ variant_id: variantId, sku: 'SKU-1', quantity: 1, price_at_purchase: 100 }],
+                total_amount: 100,
+                idempotency_key: 'idem-rzp-3',
+                shipping_address: { recipient_name: 'John', street: '123 St', city: 'City', state: 'ST', postcode: '12345', country: 'IN' },
+            });
+
+            let error: any;
+            try {
+                await verifyRazorpayPayment(
+                    cancelledOrder._id.toString(),
+                    razorpayPaymentId,
+                    razorpayOrderId,
+                    'forged_signature'
+                );
+            } catch (err) {
+                error = err;
+            }
+            expect(error).toBeDefined();
+            expect(error.message).toContain('Invalid Razorpay payment signature');
         });
     });
 });
