@@ -40,6 +40,27 @@ const updateTaxSettingsSchema = z.object({
     countriesConfig: z.array(countryConfigSchema).optional(),
 });
 
+const paymentGatewayConfigSchema = z.object({
+    enabled: z.boolean(),
+    sandbox: z.boolean(),
+    keyId: z.string().default(''),
+    secretKey: z.string().default(''),
+    webhookSecret: z.string().default(''),
+});
+
+const codSettingsSchema = z.object({
+    enabled: z.boolean(),
+    minOrderAmount: z.number().default(0),
+    maxOrderAmount: z.number().default(0),
+    instructions: z.string().default(''),
+});
+
+const updatePaymentsSettingsSchema = z.object({
+    razorpay: paymentGatewayConfigSchema.optional(),
+    stripe: paymentGatewayConfigSchema.optional(),
+    cod: codSettingsSchema.optional(),
+});
+
 settings.use('/*', authMiddleware);
 
 settings.get('/', requirePermission('settings:read'), async (c) => {
@@ -63,6 +84,13 @@ settings.put('/taxes', requirePermission('settings:write'), async (c) => {
 settings.put('/shipping', requirePermission('settings:write'), async (c) => {
     const body = await c.req.json();
     const data = await settingsService.updateShippingSettings(body);
+    return c.json(data);
+});
+
+settings.put('/payments', requirePermission('settings:write'), async (c) => {
+    const body = await c.req.json();
+    const validatedData = updatePaymentsSettingsSchema.parse(body);
+    const data = await settingsService.updatePaymentSettings(validatedData);
     return c.json(data);
 });
 

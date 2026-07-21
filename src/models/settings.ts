@@ -55,6 +55,21 @@ export interface IShippingZone {
     active: boolean;
 }
 
+export interface IPaymentGatewayConfig {
+    enabled: boolean;
+    sandbox: boolean;
+    keyId: string;
+    secretKey: string;
+    webhookSecret: string;
+}
+
+export interface ICodSettings {
+    enabled: boolean;
+    minOrderAmount: number;
+    maxOrderAmount: number;
+    instructions: string;
+}
+
 export interface ISettings extends Document {
     general: {
         storeName: string;
@@ -82,6 +97,11 @@ export interface ISettings extends Document {
             fedex: ICarrierConfig;
             dhl: ICarrierConfig;
         };
+    };
+    payments: {
+        razorpay: IPaymentGatewayConfig;
+        stripe: IPaymentGatewayConfig;
+        cod: ICodSettings;
     };
     created_at: Date;
     updated_at: Date;
@@ -142,6 +162,21 @@ const shippingZoneSchema = new Schema<IShippingZone>({
     active: { type: Boolean, default: true }
 });
 
+const paymentGatewayConfigSchema = new Schema<IPaymentGatewayConfig>({
+    enabled: { type: Boolean, default: false },
+    sandbox: { type: Boolean, default: true },
+    keyId: { type: String, default: "" },
+    secretKey: { type: String, default: "" },
+    webhookSecret: { type: String, default: "" }
+}, { _id: false });
+
+const codSettingsSchema = new Schema<ICodSettings>({
+    enabled: { type: Boolean, default: false },
+    minOrderAmount: { type: Number, default: 0 },
+    maxOrderAmount: { type: Number, default: 0 },
+    instructions: { type: String, default: "" }
+}, { _id: false });
+
 const settingsSchema = new Schema<ISettings>({
     general: {
         storeName: { type: String, default: 'My Store' },
@@ -169,6 +204,11 @@ const settingsSchema = new Schema<ISettings>({
             fedex: { type: carrierConfigSchema, default: () => ({}) },
             dhl: { type: carrierConfigSchema, default: () => ({}) }
         }
+    },
+    payments: {
+        razorpay: { type: paymentGatewayConfigSchema, default: () => ({}) },
+        stripe: { type: paymentGatewayConfigSchema, default: () => ({}) },
+        cod: { type: codSettingsSchema, default: () => ({}) }
     }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 

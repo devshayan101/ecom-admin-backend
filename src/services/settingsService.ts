@@ -33,6 +33,11 @@ export async function getSettings(): Promise<ISettings> {
                         fedex: { enabled: false, sandbox: true, apiKey: "", apiSecret: "", accountId: "" },
                         dhl: { enabled: false, sandbox: true, apiKey: "", apiSecret: "", accountId: "" }
                     }
+                },
+                payments: {
+                    razorpay: { enabled: false, sandbox: true, keyId: "", secretKey: "", webhookSecret: "" },
+                    stripe: { enabled: false, sandbox: true, keyId: "", secretKey: "", webhookSecret: "" },
+                    cod: { enabled: false, minOrderAmount: 0, maxOrderAmount: 0, instructions: "" }
                 }
             }
         },
@@ -134,6 +139,48 @@ export async function updateShippingSettings(data: {
         if (data.carriers.dhl !== undefined) {
             settings.shipping.carriers.dhl = data.carriers.dhl;
         }
+    }
+    await settings.save();
+    return settings;
+}
+
+export async function updatePaymentSettings(data: {
+    razorpay?: any;
+    stripe?: any;
+    cod?: any;
+}): Promise<ISettings> {
+    const settings = await getSettings();
+    if (!settings.payments) {
+        settings.payments = {
+            razorpay: { enabled: false, sandbox: true, keyId: "", secretKey: "", webhookSecret: "" },
+            stripe: { enabled: false, sandbox: true, keyId: "", secretKey: "", webhookSecret: "" },
+            cod: { enabled: false, minOrderAmount: 0, maxOrderAmount: 0, instructions: "" }
+        };
+    }
+    if (data.razorpay !== undefined) {
+        const oldSecretKey = settings.payments?.razorpay?.secretKey;
+        const oldWebhookSecret = settings.payments?.razorpay?.webhookSecret;
+        settings.payments.razorpay = data.razorpay;
+        if (data.razorpay.secretKey === "••••••••••••••••" && oldSecretKey) {
+            settings.payments.razorpay.secretKey = oldSecretKey;
+        }
+        if (data.razorpay.webhookSecret === "••••••••••••••••" && oldWebhookSecret) {
+            settings.payments.razorpay.webhookSecret = oldWebhookSecret;
+        }
+    }
+    if (data.stripe !== undefined) {
+        const oldSecretKey = settings.payments?.stripe?.secretKey;
+        const oldWebhookSecret = settings.payments?.stripe?.webhookSecret;
+        settings.payments.stripe = data.stripe;
+        if (data.stripe.secretKey === "••••••••••••••••" && oldSecretKey) {
+            settings.payments.stripe.secretKey = oldSecretKey;
+        }
+        if (data.stripe.webhookSecret === "••••••••••••••••" && oldWebhookSecret) {
+            settings.payments.stripe.webhookSecret = oldWebhookSecret;
+        }
+    }
+    if (data.cod !== undefined) {
+        settings.payments.cod = data.cod;
     }
     await settings.save();
     return settings;

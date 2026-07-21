@@ -1,12 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IProcessedEvent extends Document {
+export interface IProcessedEvent {
     _id: string; // Webhook event ID (Stripe or Razorpay)
     order_id: mongoose.Types.ObjectId;
     type: 'stripe' | 'razorpay';
-    processed_at: Date;
-    notification_sent: boolean;
-    audit_logged: boolean;
+    processed_at?: Date;
+    notification_sent?: boolean;
+    audit_logged?: boolean;
 }
 
 const processedEventSchema = new Schema<IProcessedEvent>({
