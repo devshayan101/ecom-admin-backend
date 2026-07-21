@@ -84,6 +84,33 @@ describe('InventoryService', () => {
             expect(inv?.stock).toBe(5);
             expect(inv?.reserved).toBe(0);
         });
+
+        it('should respect transaction session and rollback on abort', async () => {
+            await InventoryModel.updateOne({ _id: variantId }, { $inc: { reserved: 5 } });
+
+            const session = await mongoose.startSession();
+            session.startTransaction();
+
+            await convertReservationToSale(variantId, 5, session);
+
+            // Inside transaction, it should be updated
+            const invInTx = await InventoryModel.findById(variantId).session(session);
+            expect(invInTx?.stock).toBe(5);
+            expect(invInTx?.reserved).toBe(0);
+
+            // Outside transaction, it should not be updated yet
+            const invOutTx = await InventoryModel.findById(variantId);
+            expect(invOutTx?.stock).toBe(10);
+            expect(invOutTx?.reserved).toBe(5);
+
+            await session.abortTransaction();
+            await session.endSession();
+
+            // After abort, it should remain rolled back
+            const invAfterAbort = await InventoryModel.findById(variantId);
+            expect(invAfterAbort?.stock).toBe(10);
+            expect(invAfterAbort?.reserved).toBe(5);
+        });
     });
 
     describe('releaseReservation', () => {

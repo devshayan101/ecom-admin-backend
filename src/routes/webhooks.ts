@@ -39,6 +39,11 @@ webhooks.post('/stripe', async (c) => {
         type: event.type,
         paymentIntentId: (event.data.object as any).id,
         metadata: (event.data.object as any).metadata,
+    }, {
+        attempts: 3,
+        backoff: {
+            type: 'custom',
+        },
     });
 
     return c.json({ received: true });
@@ -52,17 +57,18 @@ webhooks.post('/razorpay', async (c) => {
     }
 
     const rawBody = await c.req.text();
-    if (config.razorpayWebhookSecret) {
-        const expectedSignature = crypto
-            .createHmac('sha256', config.razorpayWebhookSecret)
-            .update(rawBody)
-            .digest('hex');
-
-        if (expectedSignature !== signature) {
-            return c.json({ error: { code: 'UNAUTHORIZED', message: 'Webhook signature verification failed' } }, 400);
-        }
+    if (!config.razorpayWebhookSecret) {
+        return c.json({ error: { code: 'SERVER_ERROR', message: 'Razorpay webhook secret not configured' } }, 500);
     }
-
+    const expectedSignature = crypto
+        .createHmac('sha256', config.razorpayWebhookSecret)
+        .update(rawBody)
+        .digest('hex');
+    const expected = Buffer.from(expectedSignature, 'hex');
+    const provided = Buffer.from(signature, 'hex');
+    if (expected.length !== provided.length || !crypto.timingSafeEqual(expected, provided)) {
+        return c.json({ error: { code: 'UNAUTHORIZED', message: 'Webhook signature verification failed' } }, 400);
+    }
     let payload: any;
     try {
         payload = JSON.parse(rawBody);
@@ -82,6 +88,11 @@ webhooks.post('/razorpay', async (c) => {
         eventId,
         event: payload.event,
         payload: payload.payload,
+    }, {
+        attempts: 3,
+        backoff: {
+            type: 'custom',
+        },
     });
 
     return c.json({ received: true });

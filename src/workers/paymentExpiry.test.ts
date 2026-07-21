@@ -1,8 +1,5 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import { processPaymentExpiry } from '../workers/paymentExpiry'; // I'll need to export this or test the file
-import { OrderModel } from '../models/order';
-import { InventoryModel } from '../models/inventory';
 
 // Mock Redis
 jest.mock('../utils/redisClient', () => ({
@@ -10,6 +7,7 @@ jest.mock('../utils/redisClient', () => ({
         get: jest.fn(),
         set: jest.fn(),
     }),
+    getRedisOptions: () => ({}),
 }));
 
 // Mock BullMQ
@@ -17,16 +15,22 @@ jest.mock('../queues/queues', () => ({
     paymentExpiryQueue: { add: jest.fn() },
 }));
 
+import { OrderModel } from '../models/order';
+import { InventoryModel } from '../models/inventory';
+
 // Mock Audit Log System
 jest.mock('../middleware/auditLog', () => ({
     writeSystemAuditLog: jest.fn(),
 }));
 
 let mongoServer: MongoMemoryServer;
+let processPaymentExpiry: any;
 
 beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     await mongoose.connect(mongoServer.getUri());
+    const mod = await import('../workers/paymentExpiry');
+    processPaymentExpiry = mod.processPaymentExpiry;
 });
 
 afterAll(async () => {

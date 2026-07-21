@@ -55,22 +55,26 @@ export async function reserveItems(
 // On payment success: decrement stock and reserved together (idempotent)
 export async function convertReservationToSale(
     variantId: string,
-    qty: number
+    qty: number,
+    session?: mongoose.ClientSession
 ): Promise<void> {
     await InventoryModel.updateOne(
         { _id: new mongoose.Types.ObjectId(variantId) },
-        { $inc: { stock: -qty, reserved: -qty } }
+        { $inc: { stock: -qty, reserved: -qty } },
+        { session }
     );
 }
 
 // On cancel/expiry: release reserved only
 export async function releaseReservation(
     variantId: string,
-    qty: number
+    qty: number,
+    session?: mongoose.ClientSession
 ): Promise<void> {
     await InventoryModel.updateOne(
         { _id: new mongoose.Types.ObjectId(variantId) },
-        { $inc: { reserved: -qty } }
+        { $inc: { reserved: -qty } },
+        { session }
     );
 }
 
