@@ -101,13 +101,17 @@ async function main() {
     startOrphanImageCleanupWorker();
     console.log('BullMQ workers started');
 
-    // Start server
-    serve({
-        fetch: app.fetch,
-        port: config.port,
-    }, (info) => {
-        console.log(`Server running on http://localhost:${info.port}`);
-    });
+    // Only start Node server if not running under Bun
+    if (typeof (globalThis as any).Bun === 'undefined') {
+        serve({
+            fetch: app.fetch,
+            port: config.port,
+        }, (info) => {
+            console.log(`Server running on http://localhost:${info.port}`);
+        });
+    } else {
+        console.log('Running under Bun runtime. Bun will auto-serve the default export.');
+    }
 }
 
 if (process.env.NODE_ENV !== 'test') {
@@ -118,3 +122,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 export { app };
+export default {
+    port: config.port,
+    fetch: app.fetch,
+};
