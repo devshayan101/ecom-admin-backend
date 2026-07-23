@@ -1,26 +1,26 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json bun.lock ./
 
-RUN bun ci
+RUN bun install --frozen-lockfile
 
 COPY . .
 
 RUN bun run build
 
 # Production stage
-FROM node:20-alpine AS runner
+FROM oven/bun:1-alpine AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY package*.json ./
+COPY package.json bun.lock ./
 
-RUN bun ci --only=production
+RUN bun install --frozen-lockfile --production
 
 COPY --from=builder /app/dist ./dist
 
