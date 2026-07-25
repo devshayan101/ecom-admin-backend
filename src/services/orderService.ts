@@ -75,8 +75,17 @@ export async function createOrder(body: {
     const idemKey = `idem:${body.idempotency_key}`;
 
     // Check idempotency
-    const cached = await redis.get(idemKey);
-    if (cached) return JSON.parse(cached);
+    let cached = null;
+    try {
+        cached = await redis.get(idemKey);
+    } catch (redisErr) {
+        console.warn('Redis connection failed during idempotency check, proceeding without cache:', redisErr);
+    }
+    if (cached) {
+        try {
+            return JSON.parse(cached);
+        } catch {}
+    }
 
     const payment_method = body.payment_method || 'STRIPE';
 
@@ -326,7 +335,11 @@ export async function createOrder(body: {
     const result = { order: order.toObject(), client_secret, razorpay_order };
 
     // Cache idempotency result (24h)
-    await redis.set(idemKey, JSON.stringify(result), 'EX', 86400);
+    try {
+        await redis.set(idemKey, JSON.stringify(result), 'EX', 86400);
+    } catch (redisErr) {
+        console.warn('Failed to set idempotency key in Redis:', redisErr);
+    }
 
     return result;
 }
