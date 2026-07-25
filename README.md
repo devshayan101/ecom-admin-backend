@@ -4,11 +4,11 @@ A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, an
 
 ## Tech Stack & Features
 - **Framework**: [Hono](https://hono.dev/)
-- **Runtime**: Node.js
+- **Runtime**: Bun (Optimized execution) / Node.js
 - **Database**: MongoDB (via Mongoose) with singleton Settings enforcement
 - **Background Tasks**: BullMQ (with Redis)
 - **Service Integration**:
-  - **Payments**: Stripe
+  - **Payments**: Razorpay (domestic) & Stripe (international)
   - **Storage**: Cloudflare R2
   - **Email**: Resend
   - **Secrets**: AWS Secrets Manager
@@ -19,7 +19,7 @@ A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, an
 ## Setup Instructions
 
 ### Prerequisites
-- Node.js (v18+)
+- Bun (Preferred) or Node.js (v18+)
 - MongoDB
 - Redis
 - [LocalStack](https://localstack.cloud/) (for local AWS services)
@@ -31,27 +31,27 @@ A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, an
    ```
 2. Install dependencies:
    ```bash
-   npm install
+   bun install # or npm install
    ```
 3. Configure environment variables:
    - Copy `.env.example` to `.env`:
      ```bash
      cp .env.example .env
      ```
-   - Fill in the required secrets (Stripe, AWS, JWT keys).
+   - Fill in the required secrets (Stripe, Razorpay, AWS, JWT keys).
 
 ### Running Locally
 - **Development mode**:
   ```bash
-  npm run dev
+  bun run dev # or npm run dev
   ```
 - **Build**:
   ```bash
-  npm run build
+  bun run build # or npm run build
   ```
 - **Production mode**:
   ```bash
-  npm run start
+  bun run start # or npm run start
   ```
 
 ## Project Structure

@@ -449,6 +449,37 @@ Update global shipping status, shipping zones, custom rate rules (including `del
   ```
 - **Response**: `200 OK`.
 
+#### `PUT /settings/payments`
+Update payment gateway configurations (Razorpay, Stripe, and Cash on Delivery).
+- **Permissions**: `settings:write`
+- **Request Body**:
+  ```json
+  {
+    "razorpay": {
+      "enabled": true,
+      "sandbox": true,
+      "keyId": "rzp_test_...",
+      "secretKey": "key_secret_...",
+      "webhookSecret": "wh_secret_..."
+    },
+    "stripe": {
+      "enabled": true,
+      "sandbox": true,
+      "keyId": "pk_test_...",
+      "secretKey": "sk_test_...",
+      "webhookSecret": "whsec_..."
+    },
+    "cod": {
+      "enabled": true,
+      "minOrderAmount": 100,
+      "maxOrderAmount": 10000,
+      "instructions": "Pay cash upon delivery."
+    }
+  }
+  ```
+- **Response**: `200 OK` (with sensitive credentials redacted as `"••••••••••••••••"`).
+- **Errors**: `400 Bad Request` on schema validation failure (e.g. negative amounts or min > max).
+
 ---
 
 ## Storefront Public & Shipping
@@ -472,6 +503,35 @@ Calculate available shipping rates based on destination address, cart weight, an
   }
   ```
 - **Response**: `200 OK` with `{ "rates": [ { "id": "...", "name": "Express", "price": 100, "type": "custom_flat", "deliveryTime": "1-2 business days" } ] }`.
+
+---
+
+## Webhooks & Payment Verification
+Endpoints for handling payment verification and payment provider callbacks.
+
+#### `POST /storefront/verify-razorpay`
+Verify Razorpay signature after checkout modal completion.
+- **Request Body**:
+  ```json
+  {
+    "order_id": "order_mongodb_id",
+    "razorpay_payment_id": "pay_...",
+    "razorpay_order_id": "order_...",
+    "razorpay_signature": "..."
+  }
+  ```
+- **Response**: `200 OK` with `{ "message": "Razorpay payment verified successfully", "order": { ... } }`.
+- **Errors**: `400 Bad Request` if signature verification fails or if the order is already cancelled.
+
+#### `POST /webhooks/stripe`
+Asynchronous Stripe payment intent updates (constructed event signature validation required).
+- **Headers**: `Stripe-Signature`
+- **Response**: `200 OK` with `{ "received": true }` to acknowledge event delivery. Emplaces the job on BullMQ `stripe-webhook-processor` queue.
+
+#### `POST /webhooks/razorpay`
+Asynchronous Razorpay order/payment status updates (constructed event signature validation required).
+- **Headers**: `x-razorpay-signature`
+- **Response**: `200 OK` with `{ "received": true }` to acknowledge event delivery. Emplaces the job on BullMQ `razorpay-webhook-processor` queue.
 
 ---
 

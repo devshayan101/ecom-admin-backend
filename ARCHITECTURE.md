@@ -18,8 +18,9 @@ Defines the structure of the data using Mongoose schemas for MongoDB. It ensures
 Processes asynchronous background jobs using BullMQ. Key tasks include:
 - Generating low-stock alerts.
 - Sending transactional emails via Resend.
-- Processing Stripe payment confirmations.
+- Processing Stripe and Razorpay payment confirmations using `ProcessedEventModel` database logging to ensure durable, retryable side effects.
 - Periodic dashboard metric calculations.
+- Handling payment deadline cancellations via cron-driven timeout workers.
 
 ## Core Patterns
 
@@ -38,11 +39,16 @@ BullMQ manages job scheduling and execution via Redis. Each worker is dedicated 
 
 ### Singleton Settings & Validation
 - **Known ObjectId Singleton**: Settings stored in MongoDB enforce a strict singleton pattern using a constant ObjectId (`SETTINGS_ID = '000000000000000000000000'`). Upsert operations in `settingsService` and strict `_id` query selectors across storefront, order, and review services eliminate concurrent creation race conditions and guarantee immediate synchronization across services.
-- **Route Boundary Validation**: Input mutations for critical configuration (such as tax rules and rate configurations) are validated at the route boundary via Zod schemas before being passed to service layer persistence handlers.
+- **Route Boundary Validation**: Input mutations for critical configuration (such as tax rules and rate configurations) are validated at the route boundary via Zod schemas before being passed to service layer persistence handlers. COD settings enforce non-negative amount ranges and require `maxOrderAmount >= minOrderAmount` (with 0 representing unlimited).
 - **Shipping Zone Checkout Filtering**: When global shipping is enabled, public settings endpoints dynamically compute and return only the subset of countries and states covered by active shipping zones (`zone.active === true`), preventing customers from selecting unserviced destinations during checkout.
+- **Secrets Redaction & Partial Merging**: Payment gateway keys and secrets are redacted as `"••••••••••••••••"` in all API settings responses. Updates use partial input validation, merging only non-undefined fields, while preserving pre-existing database credentials if they match the redaction mask.
+
+### Execution Runtime & Deployment
+- **Bun Runtime**: The application is optimized to run natively under the **Bun** execution runtime (leveraging high-performance HTTP serving and Bun native APIs), falling back to standard Hono Node servers where necessary.
+- **Dockerization**: The production multi-stage `Dockerfile` installs dependencies and builds the bundle using `oven/bun:1-alpine`.
 
 ### Integrations
-- **Stripe**: Handles order payments. Webhooks update the order status asychronously.
+- **Razorpay & Stripe (Dual Payment Gateways)**: Handles order checkouts dynamically based on customer destination. Razorpay processes domestic India orders (INR in paise), while Stripe processes all international orders (USD in cents).
 - **Cloudflare R2**: Used for product image storage with pre-signed upload URLs for security (using S3-compatible API).
 - **Resend**: Sends transactional emails for order confirmations and password resets.
 - **AWS Secrets Manager**: Manages sensitive configuration in production environments.
