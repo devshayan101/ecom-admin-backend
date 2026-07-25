@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
+import { runInTransaction } from '../utils/mongoClient';
 import { OrderModel, IOrder, OrderStatus } from '../models/order';
 import { SettingsModel } from '../models/settings';
 import { SETTINGS_ID } from './settingsService';
@@ -94,7 +95,7 @@ export async function createOrder(body: {
     const inclusive = settings?.taxes?.gstVatSettings?.inclusive ?? false;
     const taxRules = settings?.taxes?.taxRules ?? [];
 
-    const calculatedItems = [];
+    const calculatedItems: any[] = [];
     const rawCountry = body.shipping_address.country || 'India';
     const shippingCountry = normalizeCountry(rawCountry);
     const shippingState = body.shipping_address.state || '';
@@ -203,43 +204,35 @@ export async function createOrder(body: {
         ? new Date(Date.now() + config.paymentDeadlineMinutes * 60 * 1000)
         : null;
 
-    const session = await mongoose.startSession();
     let order: any;
 
     try {
-        session.startTransaction();
+        order = await runInTransaction(async (session) => {
+            // Reserve all inventory items atomically
+            await inventoryService.reserveItems(session, body.items.map(i => ({
+                variant_id: i.variant_id,
+                quantity: i.quantity,
+            })));
 
-        // Reserve all inventory items atomically
-        await inventoryService.reserveItems(session, body.items.map(i => ({
-            variant_id: i.variant_id,
-            quantity: i.quantity,
-        })));
+            // Persist order
+            const [created] = await OrderModel.create([{
+                customer_id: new mongoose.Types.ObjectId(body.customer_id),
+                status: 'PENDING',
+                payment_status: 'UNPAID',
+                payment_method,
+                idempotency_key: body.idempotency_key,
+                payment_deadline_at: paymentDeadline,
+                shipping_address: body.shipping_address,
+                items: calculatedItems,
+                shipping_cost,
+                shipping_rate_name,
+                total_amount,
+            }], { session });
 
-        // Persist order
-        const [created] = await OrderModel.create([{
-            customer_id: new mongoose.Types.ObjectId(body.customer_id),
-            status: 'PENDING',
-            payment_status: 'UNPAID',
-            payment_method,
-            idempotency_key: body.idempotency_key,
-            payment_deadline_at: paymentDeadline,
-            shipping_address: body.shipping_address,
-            items: calculatedItems,
-            shipping_cost,
-            shipping_rate_name,
-            total_amount,
-        }], { session });
-
-        order = created;
-
-        await session.commitTransaction();
+            return created;
+        });
     } catch (err) {
-        if (session.inTransaction()) {
-            await session.abortTransaction();
-        }
         throw err;
-    } finally {
-        await session.endSession();
     }
 
     let client_secret: string | undefined;
@@ -263,23 +256,18 @@ export async function createOrder(body: {
             client_secret = paymentIntent.client_secret ?? undefined;
         } catch (stripeErr) {
             // Compensation: cancel order and release reservations
-            const compSession = await mongoose.startSession();
             try {
-                compSession.startTransaction();
-                await OrderModel.updateOne(
-                    { _id: order._id },
-                    { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
-                    { session: compSession }
-                );
-                for (const item of body.items) {
-                    await inventoryService.releaseReservation(item.variant_id, item.quantity);
-                }
-                await compSession.commitTransaction();
-            } catch {
-                await compSession.abortTransaction();
-            } finally {
-                await compSession.endSession();
-            }
+                await runInTransaction(async (session) => {
+                    await OrderModel.updateOne(
+                        { _id: order._id },
+                        { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
+                        { session }
+                    );
+                    for (const item of body.items) {
+                        await inventoryService.releaseReservation(item.variant_id, item.quantity);
+                    }
+                });
+            } catch {}
             throw new AppError(
                 ErrorCodes.PAYMENT_INTENT_FAILED.code,
                 ErrorCodes.PAYMENT_INTENT_FAILED.statusCode,
@@ -307,23 +295,18 @@ export async function createOrder(body: {
                 currency: 'INR',
             };
         } catch (rzpErr) {
-            const compSession = await mongoose.startSession();
             try {
-                compSession.startTransaction();
-                await OrderModel.updateOne(
-                    { _id: order._id },
-                    { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
-                    { session: compSession }
-                );
-                for (const item of body.items) {
-                    await inventoryService.releaseReservation(item.variant_id, item.quantity);
-                }
-                await compSession.commitTransaction();
-            } catch {
-                await compSession.abortTransaction();
-            } finally {
-                await compSession.endSession();
-            }
+                await runInTransaction(async (session) => {
+                    await OrderModel.updateOne(
+                        { _id: order._id },
+                        { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
+                        { session }
+                    );
+                    for (const item of body.items) {
+                        await inventoryService.releaseReservation(item.variant_id, item.quantity);
+                    }
+                });
+            } catch {}
             throw new AppError(
                 ErrorCodes.PAYMENT_INTENT_FAILED.code,
                 ErrorCodes.PAYMENT_INTENT_FAILED.statusCode,
@@ -406,17 +389,13 @@ export async function verifyRazorpayPayment(
     }
 
     // 2. Wrap order status update & inventory reservation conversion in a DB transaction
-    const session = await mongoose.startSession();
-    try {
-        session.startTransaction();
-
-        const order = await OrderModel.findById(orderId).session(session);
+    return await runInTransaction(async (session) => {
+        const order = await OrderModel.findById(orderId).session(session || null);
         if (!order) {
             throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, 'Order not found');
         }
 
         if (order.payment_status === 'PAID') {
-            await session.abortTransaction();
             return order;
         }
 
@@ -426,7 +405,6 @@ export async function verifyRazorpayPayment(
         }
 
         if (order.status !== 'PENDING' || order.payment_status !== 'UNPAID') {
-            await session.abortTransaction();
             return order;
         }
 
@@ -442,8 +420,6 @@ export async function verifyRazorpayPayment(
         order.razorpay_payment_id = razorpayPaymentId;
         order.razorpay_signature = razorpaySignature;
         await order.save({ session });
-
-        await session.commitTransaction();
 
         // Queue order confirmation notification
         await orderNotifyQueue.add('order-confirmed', {
@@ -461,14 +437,7 @@ export async function verifyRazorpayPayment(
         });
 
         return order;
-    } catch (err) {
-        if (session.inTransaction()) {
-            await session.abortTransaction();
-        }
-        throw err;
-    } finally {
-        await session.endSession();
-    }
+    });
 }
 export async function handleLateRazorpaySuccess(orderId: string, paymentId: string) {
     await writeSystemAuditLog({

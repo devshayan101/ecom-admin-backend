@@ -28,9 +28,8 @@ export async function getInventoryByVariantId(variantId: string) {
     return inv;
 }
 
-// Atomic cart reservation — all-or-nothing within a session
 export async function reserveItems(
-    session: mongoose.ClientSession,
+    session: mongoose.ClientSession | undefined,
     items: Array<{ variant_id: string; quantity: number }>
 ): Promise<void> {
     for (const item of items) {
