@@ -206,6 +206,8 @@ export async function createOrder(body: {
 
     let order: any;
 
+    const currency = payment_method === 'RAZORPAY' ? 'INR' : (payment_method === 'STRIPE' ? 'USD' : (settings?.general?.currency || 'USD'));
+
     try {
         order = await runInTransaction(async (session) => {
             // Reserve all inventory items atomically
@@ -227,6 +229,7 @@ export async function createOrder(body: {
                 shipping_cost,
                 shipping_rate_name,
                 total_amount,
+                currency,
             }], { session });
 
             return created;

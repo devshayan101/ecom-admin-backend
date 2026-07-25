@@ -208,6 +208,15 @@ export async function updatePaymentSettings(data: {
         }
     }
     if (data.cod !== undefined) {
+        const minOrderAmount =
+            data.cod.minOrderAmount ?? settings.payments.cod.minOrderAmount;
+        const maxOrderAmount =
+            data.cod.maxOrderAmount ?? settings.payments.cod.maxOrderAmount;
+
+        if (maxOrderAmount > 0 && minOrderAmount > maxOrderAmount) {
+            throw new Error('Minimum order amount cannot exceed maximum order amount');
+        }
+
         if (data.cod.enabled !== undefined) settings.payments.cod.enabled = data.cod.enabled;
         if (data.cod.minOrderAmount !== undefined) settings.payments.cod.minOrderAmount = data.cod.minOrderAmount;
         if (data.cod.maxOrderAmount !== undefined) settings.payments.cod.maxOrderAmount = data.cod.maxOrderAmount;

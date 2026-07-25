@@ -39,6 +39,7 @@ export interface IOrder extends Document {
     shipping_cost: number;
     shipping_rate_name: string;
     total_amount: number;
+    currency: string;
     created_at: Date;
     updated_at: Date;
 }
@@ -77,6 +78,7 @@ const orderSchema = new Schema<IOrder>({
     shipping_cost: { type: Number, default: 0 },
     shipping_rate_name: { type: String, default: '' },
     total_amount: { type: Number, required: true, min: 0 },
+    currency: { type: String, required: true, default: 'USD' },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 orderSchema.index({ created_at: -1 });
