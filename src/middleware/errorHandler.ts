@@ -28,7 +28,8 @@ export function errorHandler(err: Error, c: Context) {
     return c.json({
         error: {
             code: 'INTERNAL_ERROR',
-            message: 'An unexpected error occurred',
+            message: err.message || 'An unexpected error occurred',
+            stack: err.stack,
         },
     }, 500);
 }
