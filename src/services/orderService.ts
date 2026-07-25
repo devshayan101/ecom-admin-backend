@@ -238,11 +238,15 @@ export async function createOrder(body: {
     let client_secret: string | undefined;
     let razorpay_order: { razorpay_order_id: string; razorpay_key_id: string; amount: number; currency: string } | undefined;
 
+    const stripeApiKey = settings?.payments?.stripe?.secretKey || config.stripeSecretKey;
+    const rzpKeyId = settings?.payments?.razorpay?.keyId || config.razorpayKeyId;
+    const rzpKeySecret = settings?.payments?.razorpay?.secretKey || config.razorpayKeySecret;
+
     if (payment_method === 'STRIPE') {
         // Create Stripe PaymentIntent (after transaction commit)
         let paymentIntent;
         try {
-            const stripe = getStripe();
+            const stripe = getStripe(stripeApiKey);
             paymentIntent = await stripe.paymentIntents.create({
                 amount: Math.round(total_amount * 100), // cents
                 currency: 'usd',
@@ -276,7 +280,7 @@ export async function createOrder(body: {
         }
     } else if (payment_method === 'RAZORPAY') {
         try {
-            const razorpay = getRazorpay();
+            const razorpay = getRazorpay(rzpKeyId, rzpKeySecret);
             const rzpOrder = await razorpay.orders.create({
                 amount: Math.round(total_amount * 100), // paise
                 currency: 'INR',
@@ -290,7 +294,7 @@ export async function createOrder(body: {
 
             razorpay_order = {
                 razorpay_order_id: rzpOrder.id,
-                razorpay_key_id: config.razorpayKeyId,
+                razorpay_key_id: rzpKeyId,
                 amount: Math.round(total_amount * 100),
                 currency: 'INR',
             };
@@ -376,8 +380,11 @@ export async function verifyRazorpayPayment(
     razorpaySignature: string
 ) {
     // 1. Verify HMAC signature FIRST using timing-safe buffer comparison
+    const settings = await SettingsModel.findOne({ _id: SETTINGS_ID }).lean();
+    const rzpSecret = settings?.payments?.razorpay?.secretKey || config.razorpayKeySecret;
+
     const generatedSignature = crypto
-        .createHmac('sha256', config.razorpayKeySecret)
+        .createHmac('sha256', rzpSecret)
         .update(`${razorpayOrderId}|${razorpayPaymentId}`)
         .digest('hex');
 
