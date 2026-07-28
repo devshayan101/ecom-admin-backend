@@ -85,7 +85,9 @@ export async function createOrder(body: {
     if (cached) {
         try {
             return JSON.parse(cached);
-        } catch {}
+        } catch (parseErr) {
+            console.warn('Failed to parse cached idempotency value, proceeding without cache:', parseErr);
+        }
     }
 
     const payment_method = body.payment_method || 'STRIPE';
@@ -274,7 +276,7 @@ export async function createOrder(body: {
                         await inventoryService.releaseReservation(item.variant_id, item.quantity);
                     }
                 });
-            } catch {}
+            } catch { }
             throw new AppError(
                 ErrorCodes.PAYMENT_INTENT_FAILED.code,
                 ErrorCodes.PAYMENT_INTENT_FAILED.statusCode,
@@ -313,7 +315,7 @@ export async function createOrder(body: {
                         await inventoryService.releaseReservation(item.variant_id, item.quantity);
                     }
                 });
-            } catch {}
+            } catch { }
             throw new AppError(
                 ErrorCodes.PAYMENT_INTENT_FAILED.code,
                 ErrorCodes.PAYMENT_INTENT_FAILED.statusCode,
