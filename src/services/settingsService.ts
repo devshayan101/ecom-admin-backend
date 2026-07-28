@@ -222,6 +222,7 @@ export async function updateGeneralSettings(data: {
         auto_publish: boolean;
     };
     countriesConfig?: any[];
+    content?: any;
 }): Promise<ISettings> {
     const settings = await getSettings();
     if (!settings.general) {
@@ -234,13 +235,20 @@ export async function updateGeneralSettings(data: {
             language: 'en'
         };
     }
-    const { reviews, countriesConfig, ...generalData } = data;
+    const { reviews, countriesConfig, content, ...generalData } = data;
     Object.assign(settings.general, generalData);
     if (reviews !== undefined) {
         settings.reviews = reviews;
     }
     if (countriesConfig !== undefined) {
         settings.taxes.countriesConfig = countriesConfig;
+    }
+    if (content !== undefined) {
+        if (!settings.content) {
+            settings.content = { heroSlides: [], promotionCards: [] };
+        }
+        if (content.heroSlides !== undefined) settings.content.heroSlides = content.heroSlides;
+        if (content.promotionCards !== undefined) settings.content.promotionCards = content.promotionCards;
     }
     await settings.save();
     return settings;
