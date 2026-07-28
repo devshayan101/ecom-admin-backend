@@ -480,15 +480,60 @@ Update payment gateway configurations (Razorpay, Stripe, and Cash on Delivery).
 - **Response**: `200 OK` (with sensitive credentials redacted as `"••••••••••••••••"`).
 - **Errors**: `400 Bad Request` on schema validation failure (e.g. negative amounts or min > max).
 
+#### `PUT /settings/content`
+Update storefront homepage content settings (Hero Carousel slides and Promotion Grid cards).
+- **Permissions**: `settings:write`
+- **Request Body**:
+  ```json
+  {
+    "heroSlides": [
+      {
+        "id": "hero-1",
+        "tag": "✦ New Arrivals 2026",
+        "title": "Glowing Skin,",
+        "titleHighlight": "Confident You",
+        "subtitle": "Premium skincare — serums, moisturizers, SPF & more. Authentic products, pan-India delivery.",
+        "bg": "linear-gradient(125deg, #0a1828 0%, #0f2444 50%, #1e3a6e 100%)",
+        "badge": "50%",
+        "badgeText": "Upto Off",
+        "emoji": "✨",
+        "buttonText": "Shop Skincare",
+        "category": "skincare",
+        "active": true,
+        "sortOrder": 0
+      }
+    ],
+    "promotionCards": [
+      {
+        "id": "promo-1",
+        "tag": "UP TO 50% OFF",
+        "title": "Skincare & Beauty Deals",
+        "desc": "Serums, moisturizers, SPF & more",
+        "btnText": "Shop Skincare",
+        "category": "skincare",
+        "bgClass": "bg-gradient-to-br from-[#0c4a30] via-[#0f5c3c] to-[#062e1e]",
+        "btnClass": "bg-white/10 hover:bg-white/20 border border-white/20 text-white",
+        "emoji": "🌿",
+        "active": true,
+        "sortOrder": 0
+      }
+    ]
+  }
+  ```
+- **Response**: `200 OK`.
+- **Errors**: `422 Unprocessable Entity` on Zod validation failure.
+
 ---
 
 ## Storefront Public & Shipping
-Public endpoints used by the storefront for configuration and shipping calculations.
+Public endpoints used by the storefront for configuration, content banners, and shipping calculations.
 
 #### `GET /storefront/settings`
-Fetch public storefront configuration (tax rules, country/state lists, currency).
-- **Behavior**: When shipping is enabled globally, `countriesConfig` and `taxRules` are dynamically filtered to return only countries and states covered by active shipping zones.
-- **Response**: `200 OK` with `{ "taxes": { ... }, "general": { "currency": "INR" } }`.
+Fetch public storefront configuration (tax rules, country/state lists, currency, and homepage content slides/cards).
+- **Behavior**: 
+  - When shipping is enabled globally, `countriesConfig` and `taxRules` are dynamically filtered to return only countries and states covered by active shipping zones.
+  - `content.heroSlides` and `content.promotionCards` are filtered to return active items (`active !== false`) sorted by `sortOrder`.
+- **Response**: `200 OK` with `{ "taxes": { ... }, "general": { "currency": "INR" }, "content": { "heroSlides": [...], "promotionCards": [...] } }`.
 
 #### `POST /storefront/shipping/rates`
 Calculate available shipping rates based on destination address, cart weight, and subtotal.

@@ -122,10 +122,52 @@ settings.put('/shipping', requirePermission('settings:write'), async (c) => {
     return c.json(data);
 });
 
+const heroSlideZodSchema = z.object({
+    id: z.string().min(1, 'ID is required'),
+    tag: z.string().min(1, 'Tag is required'),
+    title: z.string().min(1, 'Title is required'),
+    titleHighlight: z.string().optional().default(''),
+    subtitle: z.string().min(1, 'Subtitle is required'),
+    bg: z.string().min(1, 'Background is required'),
+    badge: z.string().optional().default(''),
+    badgeText: z.string().optional().default(''),
+    emoji: z.string().optional().default(''),
+    buttonText: z.string().min(1, 'Button text is required'),
+    category: z.string().min(1, 'Category is required'),
+    active: z.boolean().default(true),
+    sortOrder: z.number().default(0),
+});
+
+const promotionCardZodSchema = z.object({
+    id: z.string().min(1, 'ID is required'),
+    tag: z.string().min(1, 'Tag is required'),
+    title: z.string().min(1, 'Title is required'),
+    desc: z.string().min(1, 'Description is required'),
+    btnText: z.string().min(1, 'Button text is required'),
+    category: z.string().min(1, 'Category is required'),
+    bgClass: z.string().optional().default('bg-gradient-to-br from-[#0c4a30] via-[#0f5c3c] to-[#062e1e]'),
+    btnClass: z.string().optional().default('bg-white/10 hover:bg-white/20 border border-white/20 text-white'),
+    emoji: z.string().optional().default('✨'),
+    active: z.boolean().default(true),
+    sortOrder: z.number().default(0),
+});
+
+const updateContentSettingsSchema = z.object({
+    heroSlides: z.array(heroSlideZodSchema).optional(),
+    promotionCards: z.array(promotionCardZodSchema).optional(),
+});
+
 settings.put('/payments', requirePermission('settings:write'), async (c) => {
     const body = await c.req.json();
     const validatedData = updatePaymentsSettingsSchema.parse(body);
     const data = await settingsService.updatePaymentSettings(validatedData);
+    return c.json(toPublicSettings(data));
+});
+
+settings.put('/content', requirePermission('settings:write'), async (c) => {
+    const body = await c.req.json();
+    const validatedData = updateContentSettingsSchema.parse(body);
+    const data = await settingsService.updateContentSettings(validatedData);
     return c.json(toPublicSettings(data));
 });
 

@@ -103,8 +103,47 @@ export interface ISettings extends Document {
         stripe: IPaymentGatewayConfig;
         cod: ICodSettings;
     };
+    content?: {
+        heroSlides: IHeroSlide[];
+        promotionCards: IPromotionCard[];
+    };
     created_at: Date;
     updated_at: Date;
+}
+
+export interface IHeroSlide {
+    id: string;
+    tag: string;
+    title: string;
+    titleHighlight?: string;
+    subtitle: string;
+    bg: string;
+    badge?: string;
+    badgeText?: string;
+    emoji?: string;
+    buttonText: string;
+    category: string;
+    active: boolean;
+    sortOrder: number;
+}
+
+export interface IPromotionCard {
+    id: string;
+    tag: string;
+    title: string;
+    desc: string;
+    btnText: string;
+    category: string;
+    bgClass?: string;
+    btnClass?: string;
+    emoji?: string;
+    active: boolean;
+    sortOrder: number;
+}
+
+export interface IContentSettings {
+    heroSlides: IHeroSlide[];
+    promotionCards: IPromotionCard[];
 }
 
 const taxRuleSchema = new Schema<ITaxRule>({
@@ -177,6 +216,36 @@ const codSettingsSchema = new Schema<ICodSettings>({
     instructions: { type: String, default: "" }
 }, { _id: false });
 
+const heroSlideSchema = new Schema<IHeroSlide>({
+    id: { type: String, required: true },
+    tag: { type: String, required: true },
+    title: { type: String, required: true },
+    titleHighlight: { type: String, default: "" },
+    subtitle: { type: String, required: true },
+    bg: { type: String, required: true },
+    badge: { type: String, default: "" },
+    badgeText: { type: String, default: "" },
+    emoji: { type: String, default: "" },
+    buttonText: { type: String, required: true },
+    category: { type: String, required: true },
+    active: { type: Boolean, default: true },
+    sortOrder: { type: Number, default: 0 },
+}, { _id: false });
+
+const promotionCardSchema = new Schema<IPromotionCard>({
+    id: { type: String, required: true },
+    tag: { type: String, required: true },
+    title: { type: String, required: true },
+    desc: { type: String, required: true },
+    btnText: { type: String, required: true },
+    category: { type: String, required: true },
+    bgClass: { type: String, default: "bg-gradient-to-br from-[#0c4a30] via-[#0f5c3c] to-[#062e1e]" },
+    btnClass: { type: String, default: "bg-white/10 hover:bg-white/20 border border-white/20 text-white" },
+    emoji: { type: String, default: "✨" },
+    active: { type: Boolean, default: true },
+    sortOrder: { type: Number, default: 0 },
+}, { _id: false });
+
 const settingsSchema = new Schema<ISettings>({
     general: {
         storeName: { type: String, default: 'My Store' },
@@ -209,6 +278,10 @@ const settingsSchema = new Schema<ISettings>({
         razorpay: { type: paymentGatewayConfigSchema, default: () => ({}) },
         stripe: { type: paymentGatewayConfigSchema, default: () => ({}) },
         cod: { type: codSettingsSchema, default: () => ({}) }
+    },
+    content: {
+        heroSlides: { type: [heroSlideSchema], default: [] },
+        promotionCards: { type: [promotionCardSchema], default: [] }
     }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 

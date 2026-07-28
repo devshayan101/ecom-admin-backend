@@ -80,6 +80,17 @@ storefront.get('/settings', async (c) => {
         });
     }
 
+    const rawHeroSlides = (settings as any).content?.heroSlides || [];
+    const rawPromotionCards = (settings as any).content?.promotionCards || [];
+
+    const heroSlides = rawHeroSlides
+        .filter((s: any) => s.active !== false)
+        .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+    const promotionCards = rawPromotionCards
+        .filter((c: any) => c.active !== false)
+        .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
     return c.json({
         taxes: {
             ...settings.taxes,
@@ -88,6 +99,10 @@ storefront.get('/settings', async (c) => {
         },
         general: {
             currency: settings.general?.currency || 'INR',
+        },
+        content: {
+            heroSlides,
+            promotionCards
         }
     });
 });

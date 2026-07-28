@@ -15,6 +15,7 @@ A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, an
 - **Validation**: Zod (Route boundary validation for Settings & APIs)
 - **Authentication**: JWT (RS256)
 - **Shipping Engine**: Dynamic zone matching with active shipping zone checkout filtering and custom rate delivery times
+- **Homepage Content Management**: Admin-controlled Hero Carousel slides and Promotion Grid cards managed via singleton settings
 
 ## Setup Instructions
 
