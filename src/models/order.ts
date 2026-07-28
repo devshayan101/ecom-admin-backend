@@ -17,7 +17,7 @@ export interface IShippingAddress {
 }
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-export type PaymentStatus = 'UNPAID' | 'PAID';
+export type PaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
 export type PaymentMethod = 'STRIPE' | 'RAZORPAY' | 'COD';
 export type CancelReason = 'PAYMENT_TIMEOUT' | 'ADMIN_CANCELLED' | 'MANUAL_REMEDIATION' | null;
 
@@ -33,6 +33,10 @@ export interface IOrder extends Document {
     idempotency_key: string;
     payment_deadline_at: Date | null;
     paid_at: Date | null;
+    refunded_at: Date | null;
+    refund_amount: number;
+    refund_reason: string;
+    refund_id: string;
     cancel_reason: CancelReason;
     shipping_address: IShippingAddress;
     items: IOrderItem[];
@@ -63,7 +67,7 @@ const shippingAddressSchema = new Schema<IShippingAddress>({
 const orderSchema = new Schema<IOrder>({
     customer_id: { type: Schema.Types.ObjectId, ref: 'Customer', required: true },
     status: { type: String, enum: ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'], default: 'PENDING' },
-    payment_status: { type: String, enum: ['UNPAID', 'PAID'], default: 'UNPAID' },
+    payment_status: { type: String, enum: ['UNPAID', 'PAID', 'REFUNDED', 'PARTIALLY_REFUNDED'], default: 'UNPAID' },
     payment_method: { type: String, enum: ['STRIPE', 'RAZORPAY', 'COD'], default: 'STRIPE' },
     stripe_payment_intent_id: { type: String, default: '' },
     razorpay_order_id: { type: String, default: '' },
@@ -72,6 +76,10 @@ const orderSchema = new Schema<IOrder>({
     idempotency_key: { type: String, required: true, unique: true },
     payment_deadline_at: { type: Date, default: null },
     paid_at: { type: Date, default: null },
+    refunded_at: { type: Date, default: null },
+    refund_amount: { type: Number, default: 0 },
+    refund_reason: { type: String, default: '' },
+    refund_id: { type: String, default: '' },
     cancel_reason: { type: String, enum: ['PAYMENT_TIMEOUT', 'ADMIN_CANCELLED', 'MANUAL_REMEDIATION', null], default: null },
     shipping_address: { type: shippingAddressSchema, required: true },
     items: [orderItemSchema],

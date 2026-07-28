@@ -37,4 +37,11 @@ orders.patch('/:id/status', requirePermission('orders:write'), async (c) => {
     return c.json(order);
 });
 
+orders.post('/:id/refund', requirePermission('orders:write'), async (c) => {
+    const id = c.req.param('id')!;
+    const body = await c.req.json().catch(() => ({}));
+    const order = await orderService.processOrderRefund(id, body);
+    return c.json(order);
+});
+
 export default orders;

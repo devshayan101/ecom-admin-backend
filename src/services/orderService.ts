@@ -459,3 +459,110 @@ export async function handleLateRazorpaySuccess(orderId: string, paymentId: stri
         changes: { after: { razorpay_payment_id: paymentId, note: 'Late payment after timeout cancellation. Requires manual refund.' } },
     });
 }
+
+export async function processOrderRefund(
+    orderId: string,
+    body: { amount?: number; reason?: string; restock?: boolean }
+) {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+        throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, 'Order not found');
+    }
+
+    if (order.payment_status !== 'PAID' && order.payment_status !== 'PARTIALLY_REFUNDED') {
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Only paid or partially refunded orders can be refunded');
+    }
+
+    const previousRefundAmount = order.refund_amount || 0;
+    const maxRefundable = order.total_amount - previousRefundAmount;
+
+    if (maxRefundable <= 0) {
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Order has already been fully refunded');
+    }
+
+    const refundAmount = body.amount && body.amount > 0 ? body.amount : maxRefundable;
+
+    if (refundAmount > maxRefundable) {
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, `Refund amount cannot exceed remaining balance of ${maxRefundable.toFixed(2)}`);
+    }
+
+    let providerRefundId = '';
+
+    // Provider gateway refund execution
+    if (order.payment_method === 'RAZORPAY' && order.razorpay_payment_id) {
+        const settings = await SettingsModel.findOne({ _id: SETTINGS_ID }).lean();
+        const rzpKeyId = settings?.payments?.razorpay?.keyId || config.razorpayKeyId;
+        const rzpSecret = settings?.payments?.razorpay?.secretKey || config.razorpayKeySecret;
+        if (!rzpKeyId || !rzpSecret) {
+            throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Razorpay keys not configured in settings or environment');
+        }
+        const razorpay = getRazorpay(rzpKeyId, rzpSecret);
+        try {
+            const amountInPaise = Math.round(refundAmount * 100);
+            const refundRes = await razorpay.payments.refund(order.razorpay_payment_id, {
+                amount: amountInPaise,
+                notes: { reason: body.reason || 'Admin initiated refund' },
+            });
+            providerRefundId = refundRes.id;
+        } catch (err: any) {
+            console.error('Razorpay refund error:', err);
+            throw new AppError(ErrorCodes.PAYMENT_INTENT_FAILED.code, 500, `Razorpay refund failed: ${err.message || err.error?.description || 'Gateway error'}`);
+        }
+    } else if (order.payment_method === 'STRIPE' && order.stripe_payment_intent_id) {
+        const settings = await SettingsModel.findOne({ _id: SETTINGS_ID }).lean();
+        const stripeSecret = settings?.payments?.stripe?.secretKey || config.stripeSecretKey;
+        if (!stripeSecret) {
+            throw new AppError(ErrorCodes.VALIDATION_ERROR.code, 400, 'Stripe secret key not configured');
+        }
+        const stripe = getStripe(stripeSecret);
+        try {
+            const amountInCents = Math.round(refundAmount * 100);
+            const refundRes = await stripe.refunds.create({
+                payment_intent: order.stripe_payment_intent_id,
+                amount: amountInCents,
+                reason: 'requested_by_customer',
+            });
+            providerRefundId = refundRes.id;
+        } catch (err: any) {
+            console.error('Stripe refund error:', err);
+            throw new AppError(ErrorCodes.PAYMENT_INTENT_FAILED.code, 500, `Stripe refund failed: ${err.message || 'Gateway error'}`);
+        }
+    }
+
+    const newRefundAmount = previousRefundAmount + refundAmount;
+    const isFullRefund = newRefundAmount >= order.total_amount - 0.01;
+
+    order.refund_amount = newRefundAmount;
+    order.payment_status = isFullRefund ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
+    order.refunded_at = new Date();
+    if (body.reason) order.refund_reason = body.reason;
+    if (providerRefundId) order.refund_id = providerRefundId;
+
+    if (body.restock) {
+        for (const item of order.items) {
+            await inventoryService.releaseReservation(item.variant_id, item.quantity);
+        }
+    }
+
+    await order.save();
+
+    await writeSystemAuditLog({
+        actorType: 'system',
+        action: 'ORDER_REFUNDED',
+        result: 'success',
+        entityType: 'order',
+        entityId: order._id.toString(),
+        changes: {
+            after: {
+                refund_amount: refundAmount,
+                total_refunded: newRefundAmount,
+                payment_status: order.payment_status,
+                refund_id: providerRefundId,
+                restocked: !!body.restock,
+            },
+        },
+    });
+
+    return order;
+}
+

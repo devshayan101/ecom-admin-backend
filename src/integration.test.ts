@@ -224,10 +224,18 @@ describe('Integration Tests', () => {
     describe('Order & Inventory Workflow', () => {
         it('should perform full order flow: create -> status update', async () => {
             const variantId = new mongoose.Types.ObjectId();
+            const productId = new mongoose.Types.ObjectId();
+            await ProductModel.create({
+                _id: productId,
+                name: 'Flow Product',
+                category_id: new mongoose.Types.ObjectId().toString(),
+                variants: [{ _id: variantId, sku: 'FLOW-001', price: 100, attributes: {} }],
+                status: 'active'
+            });
             await InventoryModel.create({
                 _id: variantId,
                 sku: 'FLOW-001',
-                product_id: new mongoose.Types.ObjectId(),
+                product_id: productId,
                 stock: 10,
                 reserved: 0
             });
