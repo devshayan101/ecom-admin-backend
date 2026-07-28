@@ -238,4 +238,54 @@ describe('Settings Flow Integration Tests', () => {
         expect(res.body.rates[0].name).toBe('Express Shipping');
         expect(res.body.rates[0].deliveryTime).toBe('1-2 business days');
     });
+
+    it('should update homepage content slides and cards and serve active content to storefront', async () => {
+        const updateRes = await request(handler)
+            .put('/settings/content')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send({
+                heroSlides: [
+                    {
+                        id: 'custom-hero-1',
+                        tag: '✦ Exclusive Summer Sale',
+                        title: 'Custom Hero Headline,',
+                        titleHighlight: 'Special Discount',
+                        subtitle: 'Custom description text for testing banner persistence.',
+                        bg: 'linear-gradient(125deg, #000 0%, #111 100%)',
+                        badge: '70%',
+                        badgeText: 'Off',
+                        emoji: '🔥',
+                        buttonText: 'Shop Summer',
+                        category: 'fashion',
+                        active: true,
+                        sortOrder: 0
+                    }
+                ],
+                promotionCards: [
+                    {
+                        id: 'custom-promo-1',
+                        tag: 'EXCLUSIVE DEAL',
+                        title: 'Custom Promo Title',
+                        desc: 'Custom description for promo card',
+                        btnText: 'Shop Custom',
+                        category: 'fashion',
+                        bgClass: 'bg-emerald-800',
+                        btnClass: 'bg-white text-black',
+                        emoji: '✨',
+                        active: true,
+                        sortOrder: 0
+                    }
+                ]
+            });
+
+        expect(updateRes.status).toBe(200);
+
+        const sfRes = await request(handler).get('/storefront/settings');
+        expect(sfRes.status).toBe(200);
+        expect(sfRes.body.content).toBeDefined();
+        expect(sfRes.body.content.heroSlides).toHaveLength(1);
+        expect(sfRes.body.content.heroSlides[0].title).toBe('Custom Hero Headline,');
+        expect(sfRes.body.content.promotionCards).toHaveLength(1);
+        expect(sfRes.body.content.promotionCards[0].title).toBe('Custom Promo Title');
+    });
 });

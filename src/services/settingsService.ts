@@ -189,16 +189,9 @@ export async function getSettings(): Promise<ISettings> {
         }
     }
 
-    if (!settings.content || !settings.content.heroSlides || settings.content.heroSlides.length === 0) {
-        if (!settings.content) {
-            settings.content = { heroSlides: DEFAULT_HERO_SLIDES as any, promotionCards: DEFAULT_PROMOTION_CARDS as any };
-        } else {
-            settings.content.heroSlides = DEFAULT_HERO_SLIDES as any;
-        }
-        needsSave = true;
-    }
-    if (!settings.content.promotionCards || settings.content.promotionCards.length === 0) {
-        settings.content.promotionCards = DEFAULT_PROMOTION_CARDS as any;
+    if (!settings.content) {
+        settings.content = { heroSlides: DEFAULT_HERO_SLIDES as any, promotionCards: DEFAULT_PROMOTION_CARDS as any };
+        settings.markModified('content');
         needsSave = true;
     }
 
@@ -382,10 +375,13 @@ export async function updateContentSettings(data: {
     }
     if (data.heroSlides !== undefined) {
         settings.content.heroSlides = data.heroSlides;
+        settings.markModified('content.heroSlides');
     }
     if (data.promotionCards !== undefined) {
         settings.content.promotionCards = data.promotionCards;
+        settings.markModified('content.promotionCards');
     }
+    settings.markModified('content');
     await settings.save();
     return settings;
 }
