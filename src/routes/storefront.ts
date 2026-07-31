@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import * as productService from '../services/productService';
 import * as categoryService from '../services/categoryService';
 import * as orderService from '../services/orderService';
@@ -474,13 +475,17 @@ storefront.post('/checkout', optionalCustomerAuthMiddleware, async (c) => {
     }, 201);
 });
 
+const verifyRazorpaySchema = z.object({
+    order_id: z.string({ required_error: 'order_id is required', invalid_type_error: 'order_id must be a string' }).trim().min(1, 'order_id must be a non-empty string'),
+    razorpay_payment_id: z.string({ required_error: 'razorpay_payment_id is required', invalid_type_error: 'razorpay_payment_id must be a string' }).trim().min(1, 'razorpay_payment_id must be a non-empty string'),
+    razorpay_order_id: z.string({ required_error: 'razorpay_order_id is required', invalid_type_error: 'razorpay_order_id must be a string' }).trim().min(1, 'razorpay_order_id must be a non-empty string'),
+    razorpay_signature: z.string({ required_error: 'razorpay_signature is required', invalid_type_error: 'razorpay_signature must be a string' }).trim().min(1, 'razorpay_signature must be a non-empty string')
+});
+
 // POST /storefront/verify-razorpay -> Instant Razorpay payment signature verification
 storefront.post('/verify-razorpay', async (c) => {
-    const { order_id, razorpay_payment_id, razorpay_order_id, razorpay_signature } = await c.req.json();
-
-    if (!order_id || !razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
-        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'Missing required Razorpay verification fields');
-    }
+    const body = await c.req.json();
+    const { order_id, razorpay_payment_id, razorpay_order_id, razorpay_signature } = verifyRazorpaySchema.parse(body);
 
     const order = await orderService.verifyRazorpayPayment(
         order_id,

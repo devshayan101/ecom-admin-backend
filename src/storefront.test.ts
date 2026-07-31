@@ -16,7 +16,7 @@ import { config } from './config/secrets';
 jest.mock('./utils/redisClient', () => {
     const Redis = require('ioredis-mock');
     const redis = new Redis();
-    return { getRedis: () => redis };
+    return { getRedis: () => redis, getRedisOptions: () => ({}) };
 });
 
 // Mock Stripe
@@ -217,4 +217,19 @@ describe('Storefront Public Endpoints', () => {
         // Verify Stripe PaymentIntent WAS called
         expect(mockStripeCreate).toHaveBeenCalledTimes(1);
     });
+
+    it('should reject malformed razorpay verification payload with non-string or whitespace fields', async () => {
+        const res = await request(handler)
+            .post('/storefront/verify-razorpay')
+            .send({
+                order_id: '   ',
+                razorpay_payment_id: {},
+                razorpay_order_id: [],
+                razorpay_signature: 'sig'
+            });
+
+        expect(res.status).toBe(422);
+        expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
 });
+
