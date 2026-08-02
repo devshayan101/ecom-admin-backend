@@ -494,6 +494,8 @@ Update storefront homepage content settings (Hero Carousel slides and Promotion 
         "titleHighlight": "Confident You",
         "subtitle": "Premium skincare — serums, moisturizers, SPF & more. Authentic products, pan-India delivery.",
         "bg": "linear-gradient(125deg, #0a1828 0%, #0f2444 50%, #1e3a6e 100%)",
+        "largeImage": "https://...",
+        "smallImage": "https://...",
         "badge": "50%",
         "badgeText": "Upto Off",
         "emoji": "✨",
@@ -511,6 +513,7 @@ Update storefront homepage content settings (Hero Carousel slides and Promotion 
         "desc": "Serums, moisturizers, SPF & more",
         "btnText": "Shop Skincare",
         "category": "skincare",
+        "image": "https://...",
         "bgClass": "bg-gradient-to-br from-[#0c4a30] via-[#0f5c3c] to-[#062e1e]",
         "btnClass": "bg-white/10 hover:bg-white/20 border border-white/20 text-white",
         "emoji": "🌿",
@@ -522,6 +525,15 @@ Update storefront homepage content settings (Hero Carousel slides and Promotion 
   ```
 - **Response**: `200 OK`.
 - **Errors**: `422 Unprocessable Entity` on Zod validation failure.
+
+#### `POST /settings/content/upload-url`
+Generate a presigned URL to upload homepage content assets (hero slides and promotion card images).
+- **Permissions**: `settings:write`
+- **Request Body**:
+  ```json
+  { "content_type": "image/jpeg" }
+  ```
+- **Response**: `200 OK` with `{ "uploadUrl": "...", "objectUrl": "..." }`.
 
 ---
 

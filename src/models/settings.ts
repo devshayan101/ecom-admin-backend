@@ -118,6 +118,8 @@ export interface IHeroSlide {
     titleHighlight?: string;
     subtitle: string;
     bg: string;
+    largeImage?: string;
+    smallImage?: string;
     badge?: string;
     badgeText?: string;
     emoji?: string;
@@ -134,6 +136,7 @@ export interface IPromotionCard {
     desc: string;
     btnText: string;
     category: string;
+    image?: string;
     bgClass?: string;
     btnClass?: string;
     emoji?: string;
@@ -223,6 +226,8 @@ const heroSlideSchema = new Schema<IHeroSlide>({
     titleHighlight: { type: String, default: "" },
     subtitle: { type: String, required: true },
     bg: { type: String, required: true },
+    largeImage: { type: String, default: "" },
+    smallImage: { type: String, default: "" },
     badge: { type: String, default: "" },
     badgeText: { type: String, default: "" },
     emoji: { type: String, default: "" },
@@ -239,6 +244,7 @@ const promotionCardSchema = new Schema<IPromotionCard>({
     desc: { type: String, required: true },
     btnText: { type: String, required: true },
     category: { type: String, required: true },
+    image: { type: String, default: "" },
     bgClass: { type: String, default: "bg-gradient-to-br from-[#0c4a30] via-[#0f5c3c] to-[#062e1e]" },
     btnClass: { type: String, default: "bg-white/10 hover:bg-white/20 border border-white/20 text-white" },
     emoji: { type: String, default: "✨" },

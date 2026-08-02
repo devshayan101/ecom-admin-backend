@@ -129,6 +129,8 @@ const heroSlideZodSchema = z.object({
     titleHighlight: z.string().optional().default(''),
     subtitle: z.string().min(1, 'Subtitle is required'),
     bg: z.string().min(1, 'Background is required'),
+    largeImage: z.string().optional().default(''),
+    smallImage: z.string().optional().default(''),
     badge: z.string().optional().default(''),
     badgeText: z.string().optional().default(''),
     emoji: z.string().optional().default(''),
@@ -145,6 +147,7 @@ const promotionCardZodSchema = z.object({
     desc: z.string().min(1, 'Description is required'),
     btnText: z.string().min(1, 'Button text is required'),
     category: z.string().min(1, 'Category is required'),
+    image: z.string().optional().default(''),
     bgClass: z.string().optional().default('bg-gradient-to-br from-[#0c4a30] via-[#0f5c3c] to-[#062e1e]'),
     btnClass: z.string().optional().default('bg-white/10 hover:bg-white/20 border border-white/20 text-white'),
     emoji: z.string().optional().default('✨'),
@@ -169,6 +172,13 @@ settings.put('/content', requirePermission('settings:write'), async (c) => {
     const validatedData = updateContentSettingsSchema.parse(body);
     const data = await settingsService.updateContentSettings(validatedData);
     return c.json(toPublicSettings(data));
+});
+
+settings.post('/content/upload-url', requirePermission('settings:write'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const contentType = body.content_type || body.contentType || 'image/jpeg';
+    const result = await settingsService.generateContentUploadUrl ? settingsService.generateContentUploadUrl(contentType) : (await import('../services/productService')).generateUploadUrl(contentType);
+    return c.json(result);
 });
 
 export default settings;
