@@ -167,18 +167,27 @@ settings.put('/payments', requirePermission('settings:write'), async (c) => {
     return c.json(toPublicSettings(data));
 });
 
+settings.post('/content/upload-url', requirePermission('settings:write'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const contentType = body.content_type || body.contentType || 'image/jpeg';
+    const productService = await import('../services/productService');
+    const result = await productService.generateUploadUrl(contentType);
+    return c.json(result);
+});
+
+settings.post('/upload-url', requirePermission('settings:write'), async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const contentType = body.content_type || body.contentType || 'image/jpeg';
+    const productService = await import('../services/productService');
+    const result = await productService.generateUploadUrl(contentType);
+    return c.json(result);
+});
+
 settings.put('/content', requirePermission('settings:write'), async (c) => {
     const body = await c.req.json();
     const validatedData = updateContentSettingsSchema.parse(body);
     const data = await settingsService.updateContentSettings(validatedData);
     return c.json(toPublicSettings(data));
-});
-
-settings.post('/content/upload-url', requirePermission('settings:write'), async (c) => {
-    const body = await c.req.json().catch(() => ({}));
-    const contentType = body.content_type || body.contentType || 'image/jpeg';
-    const result = await settingsService.generateContentUploadUrl ? settingsService.generateContentUploadUrl(contentType) : (await import('../services/productService')).generateUploadUrl(contentType);
-    return c.json(result);
 });
 
 export default settings;

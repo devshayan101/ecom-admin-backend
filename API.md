@@ -483,6 +483,10 @@ Update payment gateway configurations (Razorpay, Stripe, and Cash on Delivery).
 #### `PUT /settings/content`
 Update storefront homepage content settings (Hero Carousel slides and Promotion Grid cards).
 - **Permissions**: `settings:write`
+- **Recommended Image Dimensions**:
+  - `heroSlides[].largeImage`: Desktop hero banner — **1920 × 560 px** (16:5 aspect ratio)
+  - `heroSlides[].smallImage`: Mobile hero banner — **768 × 480 px** (8:5 aspect ratio)
+  - `promotionCards[].image`: Promotion card asset — **600 × 800 px** (3:4 aspect ratio)
 - **Request Body**:
   ```json
   {
