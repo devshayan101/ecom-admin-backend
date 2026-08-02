@@ -15,6 +15,13 @@ export async function listProducts(query: Record<string, string | undefined>) {
     if (query.status) filter.status = query.status;
     if (query.category_id) filter.category_id = query.category_id;
     if (query.tag) filter.tags = query.tag;
+    if (query.search) {
+        filter.$or = [
+            { name: { $regex: query.search, $options: 'i' } },
+            { description: { $regex: query.search, $options: 'i' } },
+            { tags: { $regex: query.search, $options: 'i' } }
+        ];
+    }
 
     const cursorQuery = buildCursorQuery(cursor, sortField, sortOrder);
     const combinedFilter = { ...filter, ...cursorQuery };
