@@ -138,6 +138,11 @@ const heroSlideZodSchema = z.object({
     category: z.string().min(1, 'Category is required'),
     active: z.boolean().default(true),
     sortOrder: z.number().default(0),
+    titleColor: z.string().optional().default(''),
+    titleHighlightColor: z.string().optional().default(''),
+    subtitleColor: z.string().optional().default(''),
+    buttonTextColor: z.string().optional().default(''),
+    buttonBgColor: z.string().optional().default(''),
 });
 
 const promotionCardZodSchema = z.object({
@@ -153,6 +158,10 @@ const promotionCardZodSchema = z.object({
     emoji: z.string().optional().default('✨'),
     active: z.boolean().default(true),
     sortOrder: z.number().default(0),
+    titleColor: z.string().optional().default(''),
+    descColor: z.string().optional().default(''),
+    btnTextColor: z.string().optional().default(''),
+    btnBgColor: z.string().optional().default(''),
 });
 
 const updateContentSettingsSchema = z.object({

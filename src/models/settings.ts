@@ -127,6 +127,11 @@ export interface IHeroSlide {
     category: string;
     active: boolean;
     sortOrder: number;
+    titleColor?: string;
+    titleHighlightColor?: string;
+    subtitleColor?: string;
+    buttonTextColor?: string;
+    buttonBgColor?: string;
 }
 
 export interface IPromotionCard {
@@ -142,6 +147,10 @@ export interface IPromotionCard {
     emoji?: string;
     active: boolean;
     sortOrder: number;
+    titleColor?: string;
+    descColor?: string;
+    btnTextColor?: string;
+    btnBgColor?: string;
 }
 
 export interface IContentSettings {
@@ -235,6 +244,11 @@ const heroSlideSchema = new Schema<IHeroSlide>({
     category: { type: String, required: true },
     active: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },
+    titleColor: { type: String, default: "" },
+    titleHighlightColor: { type: String, default: "" },
+    subtitleColor: { type: String, default: "" },
+    buttonTextColor: { type: String, default: "" },
+    buttonBgColor: { type: String, default: "" },
 }, { _id: false });
 
 const promotionCardSchema = new Schema<IPromotionCard>({
@@ -250,6 +264,10 @@ const promotionCardSchema = new Schema<IPromotionCard>({
     emoji: { type: String, default: "✨" },
     active: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },
+    titleColor: { type: String, default: "" },
+    descColor: { type: String, default: "" },
+    btnTextColor: { type: String, default: "" },
+    btnBgColor: { type: String, default: "" },
 }, { _id: false });
 
 const settingsSchema = new Schema<ISettings>({

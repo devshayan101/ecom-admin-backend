@@ -13,6 +13,25 @@ export interface ITaxSlab {
     rate: number;
 }
 
+export interface IProductKeyValue {
+    key: string;
+    value: string;
+}
+
+export interface IProductFaq {
+    question: string;
+    answer: string;
+}
+
+export interface IProductDisplayConfig {
+    top_highlights?: boolean;
+    about_this_item?: boolean;
+    additional_information?: boolean;
+    style_details?: boolean;
+    features_specs?: boolean;
+    faqs?: boolean;
+}
+
 export interface IProduct extends Document {
     name: string;
     description: string;
@@ -24,6 +43,13 @@ export interface IProduct extends Document {
     tax_slabs?: ITaxSlab[];
     rating_average?: number;
     rating_count?: number;
+    top_highlights?: IProductKeyValue[];
+    about_this_item?: string[];
+    additional_information?: IProductKeyValue[];
+    style_details?: IProductKeyValue[];
+    features_specs?: IProductKeyValue[];
+    faqs?: IProductFaq[];
+    display_configs?: IProductDisplayConfig;
     created_at: Date;
     updated_at: Date;
 }
@@ -34,6 +60,16 @@ const variantSchema = new Schema<IVariant>({
     image: { type: String },
     attributes: { type: Schema.Types.Mixed, default: {} },
 }, { _id: true });
+
+const keyValueSchema = new Schema<IProductKeyValue>({
+    key: { type: String, required: true },
+    value: { type: String, required: true }
+}, { _id: false });
+
+const faqSchema = new Schema<IProductFaq>({
+    question: { type: String, required: true },
+    answer: { type: String, required: true }
+}, { _id: false });
 
 const productSchema = new Schema<IProduct>({
     name: { type: String, required: true },
@@ -49,6 +85,30 @@ const productSchema = new Schema<IProduct>({
     }],
     rating_average: { type: Number, default: 0 },
     rating_count: { type: Number, default: 0 },
+    top_highlights: { type: [keyValueSchema], default: [] },
+    about_this_item: { type: [String], default: [] },
+    additional_information: { type: [keyValueSchema], default: [] },
+    style_details: { type: [keyValueSchema], default: [] },
+    features_specs: { type: [keyValueSchema], default: [] },
+    faqs: { type: [faqSchema], default: [] },
+    display_configs: {
+        type: {
+            top_highlights: { type: Boolean, default: true },
+            about_this_item: { type: Boolean, default: true },
+            additional_information: { type: Boolean, default: true },
+            style_details: { type: Boolean, default: true },
+            features_specs: { type: Boolean, default: true },
+            faqs: { type: Boolean, default: true }
+        },
+        default: {
+            top_highlights: true,
+            about_this_item: true,
+            additional_information: true,
+            style_details: true,
+            features_specs: true,
+            faqs: true
+        }
+    }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 productSchema.index({ 'variants.sku': 1 }, { unique: true });

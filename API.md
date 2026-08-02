@@ -506,7 +506,12 @@ Update storefront homepage content settings (Hero Carousel slides and Promotion 
         "buttonText": "Shop Skincare",
         "category": "skincare",
         "active": true,
-        "sortOrder": 0
+        "sortOrder": 0,
+        "titleColor": "#ffffff",
+        "titleHighlightColor": "#fcd34d",
+        "subtitleColor": "#e2e8f0",
+        "buttonTextColor": "#000000",
+        "buttonBgColor": "#ffd814"
       }
     ],
     "promotionCards": [
@@ -522,7 +527,11 @@ Update storefront homepage content settings (Hero Carousel slides and Promotion 
         "btnClass": "bg-white/10 hover:bg-white/20 border border-white/20 text-white",
         "emoji": "🌿",
         "active": true,
-        "sortOrder": 0
+        "sortOrder": 0,
+        "titleColor": "#ffffff",
+        "descColor": "#e2e8f0",
+        "btnTextColor": "#ffffff",
+        "btnBgColor": "#0058be"
       }
     ]
   }

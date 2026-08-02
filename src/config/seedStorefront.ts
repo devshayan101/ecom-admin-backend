@@ -82,6 +82,104 @@ async function seed() {
             continue;
         }
 
+        // Define category-specific specs and details
+        let top_highlights: any[] = [];
+        let about_this_item: string[] = [];
+        let additional_information: any[] = [];
+        let style_details: any[] = [];
+        let features_specs: any[] = [];
+        let faqs: any[] = [];
+
+        if (p.cat === 'women' || p.cat === 'men') {
+            top_highlights = [
+                { key: 'Material composition', value: 'Cotton Blend' },
+                { key: 'Fit type', value: p.cat === 'men' ? 'Slim Fit' : 'Regular Fit' },
+                { key: 'Style', value: 'Western / Ethnic' },
+                { key: 'Country of Origin', value: 'India' }
+            ];
+            about_this_item = [
+                '【Premium Material】 Crafted from a breathable and soft cotton blend, ensuring all-day comfort.',
+                '【Stylish Design】 Perfect for both casual wear and festive occasions with elegant stitch details.',
+                '【Garment Care】 Machine washable. Hang dry or tumble dry low.'
+            ];
+            additional_information = [
+                { key: 'Manufacturer', value: 'Nakalank Fashion' },
+                { key: 'Net Quantity', value: '1 Count' },
+                { key: 'Item Weight', value: '240 g' },
+                { key: 'Generic Name', value: 'Apparel' }
+            ];
+            style_details = [
+                { key: 'Colour', value: 'Assorted Colors' },
+                { key: 'Apparel Occasion', value: 'Casual, Festive' }
+            ];
+            features_specs = [
+                { key: 'Stitch Pattern', value: 'High-density double stitch' },
+                { key: 'Color Fastness', value: 'Guaranteed up to 50 washes' }
+            ];
+            faqs = [
+                { question: 'Is this garment true to size?', answer: 'Yes, our apparel fits true to standard size charts. If you prefer a loose fit, we recommend sizing up.' },
+                { question: 'What is the recommended washing instruction?', answer: 'Machine wash cold with like colors. Avoid bleaching and dry in shade.' }
+            ];
+        } else if (p.cat === 'skincare' || p.cat === 'cosmetics') {
+            top_highlights = [
+                { key: 'Skin Type', value: 'All Skin Types' },
+                { key: 'Primary Solution', value: 'Brightening / Protection' },
+                { key: 'Form', value: 'Serum / Gel / Cream' },
+                { key: 'Country of Origin', value: 'India' }
+            ];
+            about_this_item = [
+                '【Active Formula】 Enriched with active ingredients for immediate absorption and glow.',
+                '【Safe and Clean】 Paraben-free, sulfate-free, and dermatologically tested.',
+                '【How to Use】 Apply 3-5 drops on clean skin every morning or night.'
+            ];
+            additional_information = [
+                { key: 'Manufacturer', value: 'OlinBuy Cosmetics Ltd.' },
+                { key: 'Net Quantity', value: '50 ml / 100g' },
+                { key: 'Generic Name', value: 'Beauty Care' }
+            ];
+            style_details = [
+                { key: 'Texture', value: 'Light Gel / Smooth Finish' },
+                { key: 'Scent', value: 'Unscented / Lavender' }
+            ];
+            features_specs = [
+                { key: 'pH Level', value: '5.5 (Skin Balanced)' },
+                { key: 'Cruelty Free', value: 'Yes (Certified)' }
+            ];
+            faqs = [
+                { question: 'Is this suitable for sensitive skin?', answer: 'Yes, our formula is dermatologically tested, non-comedogenic, and safe for sensitive skin types.' },
+                { question: 'When should I apply this in my daily routine?', answer: 'Apply after cleansing and toning, right before applying moisturizer.' }
+            ];
+        } else if (p.cat === 'wholesale') {
+            top_highlights = [
+                { key: 'Minimum Order Qty', value: '1 bundle (10-24 pcs)' },
+                { key: 'Case Pack Count', value: '12 pcs / 24 pcs' },
+                { key: 'Unit Pricing', value: 'Bulk Rate Applied' },
+                { key: 'Country of Origin', value: 'India' }
+            ];
+            about_this_item = [
+                '【Bulk Pricing】 Exclusive wholesale rates for verified merchants.',
+                '【Assorted Pack】 Includes a variety of colors and standard sizes.',
+                '【Fast Fulfillment】 Shipped in heavy-duty cardboard case packaging.'
+            ];
+            additional_information = [
+                { key: 'Packer', value: 'OlinBuy Wholesale Hub' },
+                { key: 'Package Weight', value: '4.5 kg' },
+                { key: 'Package Dimensions', value: '35 x 24 x 10 cm' }
+            ];
+            style_details = [
+                { key: 'Bundle Type', value: 'Mixed Pack' },
+                { key: 'MOQ', value: '1 Box' }
+            ];
+            features_specs = [
+                { key: 'Export Quality', value: 'Yes' },
+                { key: 'HSN Code', value: '6206.90' }
+            ];
+            faqs = [
+                { question: 'What is the Minimum Order Quantity (MOQ)?', answer: 'The MOQ for this item is 1 master box (contains 12 to 24 units).' },
+                { question: 'Do you offer GST invoices for business tax credit?', answer: 'Yes, all wholesale orders come with B2B GST tax invoices.' }
+            ];
+        }
+
         const sku = `OLIN-${String(p.id).padStart(3, '0')}`;
 
         // Create product via productService to ensure inventory creation
@@ -104,7 +202,21 @@ async function seed() {
                     stock: 100, // Seed 100 in stock
                     low_stock_threshold: 10
                 }
-            ]
+            ],
+            top_highlights,
+            about_this_item,
+            additional_information,
+            style_details,
+            features_specs,
+            faqs,
+            display_configs: {
+                top_highlights: true,
+                about_this_item: true,
+                additional_information: true,
+                style_details: true,
+                features_specs: true,
+                faqs: true
+            }
         });
         console.log(`Created Product: ${p.name}`);
     }
