@@ -132,19 +132,67 @@ List all products with filtering and pagination.
 #### `POST /products`
 Create a new product.
 - **Permissions**: `products:write`
-- **Request Body**: Product details (name, description, variants, attributes, etc.).
-- **Response**: `201 Created`.
+- **Request Body**:
+  ```json
+  {
+    "name": "Women's Floral Print Kurti",
+    "description": "Premium cotton, S–XXL",
+    "category_id": "...",
+    "tags": ["new", "olinbuy"],
+    "images": [],
+    "status": "active",
+    "variants": [
+      {
+        "sku": "OLIN-012",
+        "price": 749,
+        "image": "",
+        "attributes": { "mrp": 1299, "variant_name": "Standard" },
+        "stock": 100,
+        "low_stock_threshold": 10
+      }
+    ],
+    "top_highlights": [
+      { "key": "Material composition", "value": "Cotton Blend" },
+      { "key": "Fit type", "value": "Regular Fit" }
+    ],
+    "about_this_item": [
+      "【Premium Material】 Crafted from a breathable and soft cotton blend.",
+      "【Garment Care】 Machine washable."
+    ],
+    "additional_information": [
+      { "key": "Manufacturer", "value": "Nakalank Fashion" }
+    ],
+    "style_details": [
+      { "key": "Colour", "value": "Assorted Colors" }
+    ],
+    "features_specs": [
+      { "key": "Stitch Pattern", "value": "High-density double stitch" }
+    ],
+    "faqs": [
+      { "question": "Is this garment true to size?", "answer": "Yes, our apparel fits true to standard size charts." }
+    ],
+    "display_configs": {
+      "top_highlights": true,
+      "about_this_item": true,
+      "additional_information": true,
+      "style_details": true,
+      "features_specs": true,
+      "faqs": true
+    }
+  }
+  ```
+- **Response**: `201 Created` with the created product document.
 
 #### `GET /products/:id`
 Get details of a specific product.
 - **Permissions**: `products:read`
-- **Response**: `200 OK`.
+- **Response**: `200 OK` with the product document including all detailed specification fields.
 
 #### `PUT /products/:id`
 Update a product.
 - **Permissions**: `products:write`
-- **Request Body**: Updated product details.
-- **Response**: `200 OK`.
+- **Request Body**: Updated product details matching the parameters structure of `POST /products`.
+- **Response**: `200 OK` with the updated product document.
 
 #### `DELETE /products/:id`
 Archive or hard-delete a product.

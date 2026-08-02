@@ -44,6 +44,10 @@ BullMQ manages job scheduling and execution via Redis. Each worker is dedicated 
 - **Homepage Content Management**: Hero Carousel slides and Promotion Grid cards are stored in the singleton `content` document schema. The backend initializes default seed content on startup/query, validates mutations via Zod schemas at `PUT /settings/content`, and serves active items (`active !== false`) ordered by `sortOrder` on `GET /storefront/settings`.
 - **Secrets Redaction & Partial Merging**: Payment gateway keys and secrets are redacted as `"••••••••••••••••"` in all API settings responses. Updates use partial input validation, merging only non-undefined fields, while preserving pre-existing database credentials if they match the redaction mask.
 
+### Dynamic Specifications & Collapsible FAQs
+- **Dynamic Content Sub-types**: Supports storing and managing specifications partitioned into highlights, bullets, styles, technical details, and additional info. Layout rules dynamically render Highlights and About This Item above-the-fold, and group Style, Specs, and Info under vertically collapsed accordions with alternating row background shading and touch-accessible targets.
+- **Product FAQ Fallback**: FAQ rendering supports product-specific Q&A lists. If display config toggles are disabled or no custom FAQs are defined, the FAQ block is completely omitted (returns `null` in the React tree) on the storefront.
+
 ### Execution Runtime & Deployment
 - **Bun Runtime**: The application is optimized to run natively under the **Bun** execution runtime (leveraging high-performance HTTP serving and Bun native APIs), falling back to standard Hono Node servers where necessary.
 - **Dockerization**: The production multi-stage `Dockerfile` installs dependencies and builds the bundle using `oven/bun:1-alpine`.
