@@ -178,7 +178,8 @@ Create a new product.
       "style_details": true,
       "features_specs": true,
       "faqs": true
-    }
+    },
+    "variation_categories": ["Color", "Size"]
   }
   ```
 - **Response**: `201 Created` with the created product document.

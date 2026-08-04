@@ -44,8 +44,9 @@ BullMQ manages job scheduling and execution via Redis. Each worker is dedicated 
 - **Homepage Content Management**: Hero Carousel slides and Promotion Grid cards are stored in the singleton `content` document schema. The backend initializes default seed content on startup/query, validates mutations via Zod schemas at `PUT /settings/content`, and serves active items (`active !== false`) ordered by `sortOrder` on `GET /storefront/settings`.
 - **Secrets Redaction & Partial Merging**: Payment gateway keys and secrets are redacted as `"••••••••••••••••"` in all API settings responses. Updates use partial input validation, merging only non-undefined fields, while preserving pre-existing database credentials if they match the redaction mask.
 
-### Dynamic Specifications & Collapsible FAQs
+### Dynamic Specifications, Variations & FAQs
 - **Dynamic Content Sub-types**: Supports storing and managing specifications partitioned into highlights, bullets, styles, technical details, and additional info. Layout rules dynamically render Highlights and About This Item above-the-fold, and group Style, Specs, and Info under vertically collapsed accordions with alternating row background shading and touch-accessible targets.
+- **Product Variation Categories**: Allows creating custom, product-level variant categories (e.g. Color, Size) on the fly, storing options within each variant's attributes dictionary, and rendering them as grouped selectors on the storefront (including circular color swatches and text chips) with combination unavailability verification.
 - **Product FAQ Fallback**: FAQ rendering supports product-specific Q&A lists. If display config toggles are disabled or no custom FAQs are defined, the FAQ block is completely omitted (returns `null` in the React tree) on the storefront.
 
 ### Execution Runtime & Deployment

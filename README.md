@@ -16,8 +16,7 @@ A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, an
 - **Authentication**: JWT (RS256)
 - **Shipping Engine**: Dynamic zone matching with active shipping zone checkout filtering and custom rate delivery times
 - **Homepage Content Management**: Admin-controlled Hero Carousel slides and Promotion Grid cards managed via singleton settings
-- **Dynamic Specifications & Description Sub-types**: Supports dynamic e-commerce details including Top Highlights (above-the-fold invisible tables), scannable bullet points (About This Item), and single-column collapsible spec sheets (Style Details, Features & Specs, and Additional Information) featuring alternating row shading and touch-friendly targets
-- **Product-Specific FAQs**: Supports configuring dynamic Frequently Asked Questions (Q&A lists) per product, controlled individually by store administrators with fallback to hide the section completely if none are defined
+- **Dynamic Specifications, Variations & FAQs**: Supports dynamic specifications (Highlights, About This Item, Specs Sheets), custom product-level variant categories (Color, Size) defined on the fly, and collapsible product FAQs with conditional storefront rendering.
 
 ## Setup Instructions
 

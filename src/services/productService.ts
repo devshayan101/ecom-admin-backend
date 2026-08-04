@@ -41,7 +41,7 @@ export async function getProductById(id: string) {
 }
 
 export async function createProduct(data: any) {
-    await validateAttributes(data.category_id, data.variants || []);
+    await validateAttributes(data.category_id, data.variants || [], data.variation_categories);
 
     const product = await ProductModel.create(data);
 
@@ -77,8 +77,9 @@ export async function updateProduct(id: string, data: any) {
     if (existing.status === 'archived') throw new AppError(ErrorCodes.CONFLICT.code, ErrorCodes.CONFLICT.statusCode, 'Cannot update an archived product');
 
     const categoryId = data.category_id || existing.category_id.toString();
+    const variationCategories = data.variation_categories !== undefined ? data.variation_categories : existing.variation_categories;
     if (data.variants) {
-        await validateAttributes(categoryId, data.variants);
+        await validateAttributes(categoryId, data.variants, variationCategories);
     }
 
     Object.assign(existing, data);
@@ -152,16 +153,21 @@ export async function generateUploadUrl(contentType: string) {
     return { uploadUrl: url, objectUrl };
 }
 
-async function validateAttributes(categoryId: string, variants: any[]) {
+async function validateAttributes(categoryId: string, variants: any[], variationCategories?: string[]) {
     const category = await CategoryModel.findById(categoryId).lean();
     if (!category) throw new AppError(ErrorCodes.NOT_FOUND.code, ErrorCodes.NOT_FOUND.statusCode, 'Category not found');
 
     const schemaMap = new Map(category.attribute_schema.map(s => [s.key, s]));
+    const customAllowed = new Set((variationCategories || []).map(k => k.toLowerCase()));
 
     for (const variant of variants) {
         if (!variant.attributes) continue;
 
         for (const [key, value] of Object.entries(variant.attributes)) {
+            if (customAllowed.has(key.toLowerCase())) {
+                continue;
+            }
+
             const schemaDef = schemaMap.get(key);
             if (!schemaDef) {
                 throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, `Attribute '${key}' is not allowed for this category`, `attributes.${key}`);

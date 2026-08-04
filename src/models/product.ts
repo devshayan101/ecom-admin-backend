@@ -50,6 +50,7 @@ export interface IProduct extends Document {
     features_specs?: IProductKeyValue[];
     faqs?: IProductFaq[];
     display_configs?: IProductDisplayConfig;
+    variation_categories?: string[];
     created_at: Date;
     updated_at: Date;
 }
@@ -108,7 +109,8 @@ const productSchema = new Schema<IProduct>({
             features_specs: true,
             faqs: true
         }
-    }
+    },
+    variation_categories: [{ type: String }]
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 productSchema.index({ 'variants.sku': 1 }, { unique: true });

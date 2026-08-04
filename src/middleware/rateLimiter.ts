@@ -4,7 +4,7 @@ import { config } from '../config/secrets';
 import { AppError, ErrorCodes } from '../utils/errors';
 
 export async function rateLimiter(c: Context, next: Next) {
-    if (c.req.method === 'OPTIONS') {
+    if (c.req.method === 'OPTIONS' || process.env.NODE_ENV === 'development') {
         await next();
         return;
     }
