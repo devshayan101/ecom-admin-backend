@@ -6,6 +6,7 @@ import * as orderService from '../services/orderService';
 import * as customerService from '../services/customerService';
 import * as reviewService from '../services/reviewService';
 import { CustomerModel } from '../models/customer';
+import { WishlistModel } from '../models/wishlist';
 import { AppError, ErrorCodes } from '../utils/errors';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
@@ -669,6 +670,99 @@ storefront.post('/shipping/rates', async (c) => {
     }
 
     return c.json({ rates });
+});
+
+// --- Wishlist Endpoints ---
+
+// GET /storefront/wishlist -> Get customer's wishlist with full product details
+storefront.get('/wishlist', customerAuthMiddleware, async (c) => {
+    const customer = c.get('customer')!;
+    let wishlist = await WishlistModel.findOne({ customerId: customer.customerId }).lean();
+    
+    if (!wishlist) {
+        return c.json({ productIds: [], products: [] });
+    }
+
+    // Fetch product details for all productIds in wishlist
+    const productIds = wishlist.productIds || [];
+    const products = [];
+    for (const pid of productIds) {
+        try {
+            const prod = await productService.getProduct(pid);
+            if (prod) {
+                products.push(prod);
+            }
+        } catch (e) {
+            // Product might have been deleted
+        }
+    }
+
+    return c.json({ productIds, products });
+});
+
+// POST /storefront/wishlist/toggle -> Toggle product in customer's wishlist
+storefront.post('/wishlist/toggle', customerAuthMiddleware, async (c) => {
+    const customer = c.get('customer')!;
+    const body = await c.req.json();
+    const { productId } = body;
+
+    if (!productId) {
+        throw new AppError(ErrorCodes.BAD_REQUEST.code, ErrorCodes.BAD_REQUEST.statusCode, 'productId is required');
+    }
+
+    let wishlist = await WishlistModel.findOne({ customerId: customer.customerId });
+    if (!wishlist) {
+        wishlist = new WishlistModel({
+            customerId: customer.customerId,
+            productIds: [productId]
+        });
+    } else {
+        const index = wishlist.productIds.indexOf(productId);
+        if (index > -1) {
+            wishlist.productIds.splice(index, 1);
+        } else {
+            wishlist.productIds.push(productId);
+        }
+    }
+
+    await wishlist.save();
+
+    return c.json({ productIds: wishlist.productIds });
+});
+
+// POST /storefront/wishlist/sync -> Sync local guest wishlist into customer account
+storefront.post('/wishlist/sync', customerAuthMiddleware, async (c) => {
+    const customer = c.get('customer')!;
+    const body = await c.req.json();
+    const guestProductIds: string[] = Array.isArray(body.productIds) ? body.productIds : [];
+
+    let wishlist = await WishlistModel.findOne({ customerId: customer.customerId });
+    if (!wishlist) {
+        wishlist = new WishlistModel({
+            customerId: customer.customerId,
+            productIds: Array.from(new Set(guestProductIds))
+        });
+    } else {
+        const merged = new Set([...wishlist.productIds, ...guestProductIds]);
+        wishlist.productIds = Array.from(merged);
+    }
+
+    await wishlist.save();
+    return c.json({ productIds: wishlist.productIds });
+});
+
+// DELETE /storefront/wishlist/:productId -> Remove product from wishlist
+storefront.delete('/wishlist/:productId', customerAuthMiddleware, async (c) => {
+    const customer = c.get('customer')!;
+    const productId = c.req.param('productId');
+
+    let wishlist = await WishlistModel.findOne({ customerId: customer.customerId });
+    if (wishlist) {
+        wishlist.productIds = wishlist.productIds.filter(id => id !== productId);
+        await wishlist.save();
+    }
+
+    return c.json({ productIds: wishlist ? wishlist.productIds : [] });
 });
 
 export default storefront;
