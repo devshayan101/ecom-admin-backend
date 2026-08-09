@@ -688,7 +688,7 @@ storefront.get('/wishlist', customerAuthMiddleware, async (c) => {
     const products = [];
     for (const pid of productIds) {
         try {
-            const prod = await productService.getProduct(pid);
+            const prod = await productService.getProductById(pid);
             if (prod) {
                 products.push(prod);
             }
@@ -707,7 +707,7 @@ storefront.post('/wishlist/toggle', customerAuthMiddleware, async (c) => {
     const { productId } = body;
 
     if (!productId) {
-        throw new AppError(ErrorCodes.BAD_REQUEST.code, ErrorCodes.BAD_REQUEST.statusCode, 'productId is required');
+        throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'productId is required');
     }
 
     let wishlist = await WishlistModel.findOne({ customerId: customer.customerId });
