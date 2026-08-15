@@ -49,6 +49,11 @@ BullMQ manages job scheduling and execution via Redis. Each worker is dedicated 
 - **Product Variation Categories**: Allows creating custom, product-level variant categories (e.g. Color, Size) on the fly, storing options within each variant's attributes dictionary, and rendering them as grouped selectors on the storefront (including circular color swatches and text chips) with combination unavailability verification.
 - **Product FAQ Fallback**: FAQ rendering supports product-specific Q&A lists. If display config toggles are disabled or no custom FAQs are defined, the FAQ block is completely omitted (returns `null` in the React tree) on the storefront.
 
+### Coupon Code & Discount Engine
+- **Promotional Rule Verification**: Supports both percentage-based (`PERCENTAGE`) and fixed amount (`FIXED`) discount rules. Validation checks active toggle status, minimum subtotal requirements (`min_order_amount`), start and end date validity windows (`start_date`, `end_date`), and maximum total redemptions (`usage_limit`).
+- **Percentage Discount Capping**: For percentage discounts, `max_discount_amount` caps the maximum discount applied to high-value orders.
+- **Atomic Checkout Redemption**: When placing an order, `orderService.createOrder` re-verifies coupon constraints within a database transaction, records `coupon_code` and `discount_amount` directly on the order document, and atomically increments the coupon's `used_count`.
+
 ### Execution Runtime & Deployment
 - **Bun Runtime**: The application is optimized to run natively under the **Bun** execution runtime (leveraging high-performance HTTP serving and Bun native APIs), falling back to standard Hono Node servers where necessary.
 - **Dockerization**: The production multi-stage `Dockerfile` installs dependencies and builds the bundle using `oven/bun:1-alpine`.

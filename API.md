@@ -599,8 +599,74 @@ Generate a presigned URL to upload homepage content assets (hero slides and prom
 
 ---
 
+## Coupons & Discounts
+Admin endpoints for managing promotional discount codes and coupons. Requires authentication.
+
+#### `GET /coupons`
+List all coupons with optional search query and active status filtering. Supports cursor pagination.
+- **Query Parameters**:
+  - `search`: Filter by coupon code.
+  - `is_active`: `true` | `false`.
+- **Response**: `200 OK` with `{ "items": [...], "nextCursor": "...", "hasMore": false }`.
+
+#### `GET /coupons/:id`
+Get details of a specific coupon.
+- **Response**: `200 OK` with coupon details.
+- **Errors**: `404 Not Found` if coupon does not exist.
+
+#### `POST /coupons`
+Create a new coupon code.
+- **Request Body**:
+  ```json
+  {
+    "code": "WELCOME10",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 10,
+    "min_order_amount": 50,
+    "max_discount_amount": 25,
+    "start_date": "2026-08-01T00:00:00.000Z",
+    "end_date": "2026-12-31T23:59:59.000Z",
+    "usage_limit": 100,
+    "is_active": true
+  }
+  ```
+- **Response**: `201 Created` with created coupon details.
+- **Errors**: `409 Conflict` if coupon code already exists.
+
+#### `PUT /coupons/:id`
+Update an existing coupon.
+- **Request Body**: Partial update object.
+- **Response**: `200 OK` with updated coupon details.
+
+#### `DELETE /coupons/:id`
+Delete a coupon.
+- **Response**: `200 OK` with `{ "success": true }`.
+
+---
+
 ## Storefront Public & Shipping
-Public endpoints used by the storefront for configuration, content banners, and shipping calculations.
+Public endpoints used by the storefront for configuration, content banners, shipping calculations, and coupon verification.
+
+#### `POST /storefront/coupons/validate`
+Validate a coupon code against a cart subtotal.
+- **Request Body**:
+  ```json
+  {
+    "code": "WELCOME10",
+    "cart_subtotal": 120.00
+  }
+  ```
+- **Response**: `200 OK` with:
+  ```json
+  {
+    "code": "WELCOME10",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 10,
+    "discount_amount": 12.00,
+    "min_order_amount": 50
+  }
+  ```
+- **Errors**: `400 Bad Request` if coupon is invalid, expired, inactive, usage-limited, or subtotal is below `min_order_amount`.
 
 #### `GET /storefront/settings`
 Fetch public storefront configuration (tax rules, country/state lists, currency, and homepage content slides/cards).

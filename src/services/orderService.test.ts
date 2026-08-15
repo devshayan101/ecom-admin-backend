@@ -38,6 +38,7 @@ jest.mock('../middleware/auditLog', () => ({
 import { OrderModel } from '../models/order';
 import { InventoryModel } from '../models/inventory';
 import { ProductModel } from '../models/product';
+import { CouponModel } from '../models/coupon';
 
 let createOrder: any;
 let updateOrderStatus: any;
@@ -51,6 +52,7 @@ beforeAll(async () => {
     await InventoryModel.ensureIndexes();
     await OrderModel.ensureIndexes();
     await ProductModel.ensureIndexes();
+    await CouponModel.ensureIndexes();
 
     const mod = await import('./orderService');
     createOrder = mod.createOrder;
@@ -67,6 +69,7 @@ beforeEach(async () => {
     await OrderModel.deleteMany({});
     await InventoryModel.deleteMany({});
     await ProductModel.deleteMany({});
+    await CouponModel.deleteMany({});
     jest.clearAllMocks();
 });
 
@@ -160,6 +163,40 @@ describe('OrderService', () => {
             const order = await OrderModel.findOne({ idempotency_key: 'idem-2' });
             expect(order?.status).toBe('CANCELLED');
             expect(order?.cancel_reason).toBe('PAYMENT_INTENT_FAILED');
+        });
+
+        it('should release coupon usage if payment setup fails', async () => {
+            await CouponModel.create({
+                code: 'SAVE10',
+                discount_type: 'FIXED',
+                discount_value: 10,
+                used_count: 1,
+            });
+
+            redisMock.get.mockResolvedValue(null);
+            stripeMock.paymentIntents.create.mockRejectedValue(new Error('Stripe Down'));
+
+            const orderData = {
+                customer_id: new mongoose.Types.ObjectId().toString(),
+                items: [{ variant_id: variantId, sku: 'SKU-1', quantity: 2, price_at_purchase: 100 }],
+                shipping_address: { recipient_name: 'John', street: '123 St', city: 'City', state: 'ST', postcode: '12345', country: 'US' },
+                payment_method: 'STRIPE',
+                coupon_code: 'SAVE10',
+                discount_amount: 10,
+                total_amount: 190,
+                idempotency_key: 'idem-coupon-fail',
+            };
+
+            let err: any;
+            try {
+                await createOrder(orderData);
+            } catch (e) {
+                err = e;
+            }
+            expect(err).toBeDefined();
+
+            const coupon = await CouponModel.findOne({ code: 'SAVE10' });
+            expect(coupon?.used_count).toBe(1); // Increment (1 -> 2) then decrement on cancel compensation (2 -> 1)
         });
     });
 

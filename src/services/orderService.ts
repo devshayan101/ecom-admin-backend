@@ -294,11 +294,19 @@ export async function createOrder(body: {
             // Compensation: cancel order and release reservations
             try {
                 await runInTransaction(async (session) => {
-                    await OrderModel.updateOne(
-                        { _id: order._id },
+                    const cancelResult = await OrderModel.updateOne(
+                        { _id: order._id, status: { $ne: 'CANCELLED' } },
                         { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
                         { session }
                     );
+                    if (cancelResult.modifiedCount > 0 && coupon_code) {
+                        const { CouponModel } = await import('../models/coupon');
+                        await CouponModel.updateOne(
+                            { code: coupon_code, used_count: { $gt: 0 } },
+                            { $inc: { used_count: -1 } },
+                            { session }
+                        );
+                    }
                     for (const item of body.items) {
                         await inventoryService.releaseReservation(item.variant_id, item.quantity);
                     }
@@ -333,11 +341,19 @@ export async function createOrder(body: {
         } catch (rzpErr) {
             try {
                 await runInTransaction(async (session) => {
-                    await OrderModel.updateOne(
-                        { _id: order._id },
+                    const cancelResult = await OrderModel.updateOne(
+                        { _id: order._id, status: { $ne: 'CANCELLED' } },
                         { status: 'CANCELLED', cancel_reason: 'PAYMENT_INTENT_FAILED' as any },
                         { session }
                     );
+                    if (cancelResult.modifiedCount > 0 && coupon_code) {
+                        const { CouponModel } = await import('../models/coupon');
+                        await CouponModel.updateOne(
+                            { code: coupon_code, used_count: { $gt: 0 } },
+                            { $inc: { used_count: -1 } },
+                            { session }
+                        );
+                    }
                     for (const item of body.items) {
                         await inventoryService.releaseReservation(item.variant_id, item.quantity);
                     }
