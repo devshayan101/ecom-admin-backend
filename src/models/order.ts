@@ -43,6 +43,8 @@ export interface IOrder extends Document {
     items: IOrderItem[];
     shipping_cost: number;
     shipping_rate_name: string;
+    coupon_code?: string;
+    discount_amount?: number;
     total_amount: number;
     currency: string;
     created_at: Date;
@@ -87,6 +89,8 @@ const orderSchema = new Schema<IOrder>({
     items: [orderItemSchema],
     shipping_cost: { type: Number, default: 0 },
     shipping_rate_name: { type: String, default: '' },
+    coupon_code: { type: String, default: '' },
+    discount_amount: { type: Number, default: 0 },
     total_amount: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true, default: 'USD' },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });

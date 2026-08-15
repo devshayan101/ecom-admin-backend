@@ -109,6 +109,14 @@ storefront.get('/settings', async (c) => {
     });
 });
 
+// POST /storefront/coupons/validate -> Validate coupon for cart/checkout
+storefront.post('/coupons/validate', async (c) => {
+    const { code, cart_subtotal } = await c.req.json();
+    const { validateCoupon } = await import('../services/couponService');
+    const result = await validateCoupon(code, Number(cart_subtotal) || 0);
+    return c.json(result);
+});
+
 // GET /storefront/products -> List active products with pagination/filtering
 storefront.get('/products', async (c) => {
     const query = c.req.query();
@@ -385,7 +393,7 @@ storefront.get('/orders/:id', customerAuthMiddleware, async (c) => {
 // POST /storefront/checkout -> E-commerce checkout
 storefront.post('/checkout', optionalCustomerAuthMiddleware, async (c) => {
     const body = await c.req.json();
-    const { customer: customerData, items, payment_method, billing_address } = body;
+    const { customer: customerData, items, payment_method, billing_address, coupon_code } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
         throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'Order items are required');
@@ -474,6 +482,7 @@ storefront.post('/checkout', optionalCustomerAuthMiddleware, async (c) => {
         } : undefined,
         shipping_cost: body.shipping_cost || 0,
         shipping_rate_name: body.shipping_rate_name || '',
+        coupon_code: coupon_code || '',
         idempotency_key: idempotencyKey,
         payment_method: payment_method || 'STRIPE'
     });

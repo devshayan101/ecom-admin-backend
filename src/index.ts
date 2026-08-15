@@ -23,6 +23,7 @@ import reportRoutes from './routes/reports';
 import auditLogRoutes from './routes/auditLogs';
 import settingsRoutes from './routes/settings';
 import reviewRoutes from './routes/reviews';
+import couponRoutes from './routes/coupons';
 
 // Workers
 import { startLowStockAlertWorker } from './workers/lowStockAlert';
@@ -70,6 +71,7 @@ app.route('/reports', reportRoutes);
 app.route('/audit-logs', auditLogRoutes);
 app.route('/settings', settingsRoutes);
 app.route('/reviews', reviewRoutes);
+app.route('/coupons', couponRoutes);
 
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }));

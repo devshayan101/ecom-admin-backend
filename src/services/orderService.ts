@@ -70,6 +70,7 @@ export async function createOrder(body: {
     billing_address?: any;
     shipping_cost?: number;
     shipping_rate_name?: string;
+    coupon_code?: string;
     idempotency_key: string;
     payment_method?: 'STRIPE' | 'RAZORPAY' | 'COD';
 }) {
@@ -202,7 +203,20 @@ export async function createOrder(body: {
 
     const shipping_cost = body.shipping_cost || 0;
     const shipping_rate_name = body.shipping_rate_name || '';
-    const total_amount = calculatedItems.reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0) + shipping_cost;
+    const subtotal = calculatedItems.reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0);
+
+    let coupon_code = '';
+    let discount_amount = 0;
+
+    if (body.coupon_code) {
+        const { CouponModel } = await import('../models/coupon');
+        const { validateCoupon } = await import('./couponService');
+        const validated = await validateCoupon(body.coupon_code, subtotal);
+        coupon_code = validated.code;
+        discount_amount = validated.discount_amount;
+    }
+
+    const total_amount = Math.max(0, subtotal + shipping_cost - discount_amount);
     const paymentDeadline = (payment_method === 'STRIPE' || payment_method === 'RAZORPAY')
         ? new Date(Date.now() + config.paymentDeadlineMinutes * 60 * 1000)
         : null;
@@ -219,6 +233,15 @@ export async function createOrder(body: {
                 quantity: i.quantity,
             })));
 
+            if (coupon_code) {
+                const { CouponModel } = await import('../models/coupon');
+                await CouponModel.findOneAndUpdate(
+                    { code: coupon_code },
+                    { $inc: { used_count: 1 } },
+                    { session }
+                );
+            }
+
             // Persist order
             const [created] = await OrderModel.create([{
                 customer_id: new mongoose.Types.ObjectId(body.customer_id),
@@ -232,6 +255,8 @@ export async function createOrder(body: {
                 items: calculatedItems,
                 shipping_cost,
                 shipping_rate_name,
+                coupon_code,
+                discount_amount,
                 total_amount,
                 currency,
             }], { session });
