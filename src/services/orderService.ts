@@ -67,6 +67,7 @@ export async function createOrder(body: {
     customer_id: string;
     items: Array<{ variant_id: string; sku: string; price_at_purchase: number; quantity: number }>;
     shipping_address: any;
+    billing_address?: any;
     shipping_cost?: number;
     shipping_rate_name?: string;
     idempotency_key: string;
@@ -227,6 +228,7 @@ export async function createOrder(body: {
                 idempotency_key: body.idempotency_key,
                 payment_deadline_at: paymentDeadline,
                 shipping_address: body.shipping_address,
+                billing_address: body.billing_address || null,
                 items: calculatedItems,
                 shipping_cost,
                 shipping_rate_name,

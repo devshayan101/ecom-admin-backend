@@ -385,7 +385,7 @@ storefront.get('/orders/:id', customerAuthMiddleware, async (c) => {
 // POST /storefront/checkout -> E-commerce checkout
 storefront.post('/checkout', optionalCustomerAuthMiddleware, async (c) => {
     const body = await c.req.json();
-    const { customer: customerData, items, payment_method } = body;
+    const { customer: customerData, items, payment_method, billing_address } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
         throw new AppError(ErrorCodes.VALIDATION_ERROR.code, ErrorCodes.VALIDATION_ERROR.statusCode, 'Order items are required');
@@ -464,6 +464,14 @@ storefront.post('/checkout', optionalCustomerAuthMiddleware, async (c) => {
             postcode: customerData?.address?.postcode || customer.address?.postcode || 'N/A',
             country: customerData?.address?.country || customer.address?.country || 'India'
         },
+        billing_address: billing_address ? {
+            recipient_name: billing_address.recipient_name || billing_address.name || customerData?.name || customer.name,
+            street: billing_address.street || 'N/A',
+            city: billing_address.city || 'N/A',
+            state: billing_address.state || 'N/A',
+            postcode: billing_address.postcode || 'N/A',
+            country: billing_address.country || 'India'
+        } : undefined,
         shipping_cost: body.shipping_cost || 0,
         shipping_rate_name: body.shipping_rate_name || '',
         idempotency_key: idempotencyKey,

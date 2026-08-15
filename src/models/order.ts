@@ -39,6 +39,7 @@ export interface IOrder extends Document {
     refund_id: string;
     cancel_reason: CancelReason;
     shipping_address: IShippingAddress;
+    billing_address?: IShippingAddress | null;
     items: IOrderItem[];
     shipping_cost: number;
     shipping_rate_name: string;
@@ -82,6 +83,7 @@ const orderSchema = new Schema<IOrder>({
     refund_id: { type: String, default: '' },
     cancel_reason: { type: String, enum: ['PAYMENT_TIMEOUT', 'ADMIN_CANCELLED', 'MANUAL_REMEDIATION', null], default: null },
     shipping_address: { type: shippingAddressSchema, required: true },
+    billing_address: { type: shippingAddressSchema, default: null },
     items: [orderItemSchema],
     shipping_cost: { type: Number, default: 0 },
     shipping_rate_name: { type: String, default: '' },
