@@ -164,9 +164,24 @@ const promotionCardZodSchema = z.object({
     btnBgColor: z.string().optional().default(''),
 });
 
+const productVideoZodSchema = z.object({
+    id: z.string().min(1, 'ID is required'),
+    title: z.string().min(1, 'Title is required'),
+    category: z.string().min(1, 'Category is required'),
+    videoUrl: z.string().min(1, 'Video URL is required'),
+    thumbnail: z.string().min(1, 'Thumbnail is required'),
+    views: z.string().optional().default('1.2K'),
+    likes: z.number().optional().default(120),
+    duration: z.string().optional().default('0:15'),
+    productId: z.string().optional().default(''),
+    active: z.boolean().default(true),
+    sortOrder: z.number().default(0),
+});
+
 const updateContentSettingsSchema = z.object({
     heroSlides: z.array(heroSlideZodSchema).optional(),
     promotionCards: z.array(promotionCardZodSchema).optional(),
+    productVideos: z.array(productVideoZodSchema).optional(),
 });
 
 settings.put('/payments', requirePermission('settings:write'), async (c) => {

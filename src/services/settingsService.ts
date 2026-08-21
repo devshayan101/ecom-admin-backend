@@ -362,15 +362,59 @@ export async function updatePaymentSettings(data: {
     return settings;
 }
 
+export const DEFAULT_PRODUCT_VIDEOS = [
+    {
+        id: 'vid-1',
+        title: 'Vitamin C Serum Daily Glow Routine',
+        category: 'skincare',
+        videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+        thumbnail: 'https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=600&auto=format&fit=crop',
+        views: '12.4K',
+        likes: 843,
+        duration: '0:15',
+        productId: '',
+        active: true,
+        sortOrder: 0
+    },
+    {
+        id: 'vid-2',
+        title: 'Luxury Lipstick Matte Shades swatch',
+        category: 'cosmetics',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        thumbnail: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=600&auto=format&fit=crop',
+        views: '8.9K',
+        likes: 624,
+        duration: '0:12',
+        productId: '',
+        active: true,
+        sortOrder: 1
+    },
+    {
+        id: 'vid-3',
+        title: 'Summer Fashion Lookbook 2026',
+        category: 'women',
+        videoUrl: 'https://www.w3schools.com/html/movie.mp4',
+        thumbnail: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=600&auto=format&fit=crop',
+        views: '15.2K',
+        likes: 1204,
+        duration: '0:20',
+        productId: '',
+        active: true,
+        sortOrder: 2
+    }
+];
+
 export async function updateContentSettings(data: {
     heroSlides?: any[];
     promotionCards?: any[];
+    productVideos?: any[];
 }): Promise<ISettings> {
     const settings = await getSettings();
     if (!settings.content) {
         settings.content = {
             heroSlides: DEFAULT_HERO_SLIDES as any,
-            promotionCards: DEFAULT_PROMOTION_CARDS as any
+            promotionCards: DEFAULT_PROMOTION_CARDS as any,
+            productVideos: DEFAULT_PRODUCT_VIDEOS as any
         };
     }
     if (data.heroSlides !== undefined) {
@@ -380,6 +424,10 @@ export async function updateContentSettings(data: {
     if (data.promotionCards !== undefined) {
         settings.content.promotionCards = data.promotionCards;
         settings.markModified('content.promotionCards');
+    }
+    if (data.productVideos !== undefined) {
+        settings.content.productVideos = data.productVideos;
+        settings.markModified('content.productVideos');
     }
     settings.markModified('content');
     await settings.save();

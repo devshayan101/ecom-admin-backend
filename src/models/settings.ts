@@ -106,6 +106,7 @@ export interface ISettings extends Document {
     content?: {
         heroSlides: IHeroSlide[];
         promotionCards: IPromotionCard[];
+        productVideos?: IProductVideo[];
     };
     created_at: Date;
     updated_at: Date;
@@ -153,9 +154,24 @@ export interface IPromotionCard {
     btnBgColor?: string;
 }
 
+export interface IProductVideo {
+    id: string;
+    title: string;
+    category: string;
+    videoUrl: string;
+    thumbnail: string;
+    views?: string;
+    likes?: number;
+    duration?: string;
+    productId?: string;
+    active: boolean;
+    sortOrder: number;
+}
+
 export interface IContentSettings {
     heroSlides: IHeroSlide[];
     promotionCards: IPromotionCard[];
+    productVideos?: IProductVideo[];
 }
 
 const taxRuleSchema = new Schema<ITaxRule>({
@@ -270,6 +286,20 @@ const promotionCardSchema = new Schema<IPromotionCard>({
     btnBgColor: { type: String, default: "" },
 }, { _id: false });
 
+const productVideoSchema = new Schema<IProductVideo>({
+    id: { type: String, required: true },
+    title: { type: String, required: true },
+    category: { type: String, required: true },
+    videoUrl: { type: String, required: true },
+    thumbnail: { type: String, required: true },
+    views: { type: String, default: "1.2K" },
+    likes: { type: Number, default: 120 },
+    duration: { type: String, default: "0:15" },
+    productId: { type: String, default: "" },
+    active: { type: Boolean, default: true },
+    sortOrder: { type: Number, default: 0 },
+}, { _id: false });
+
 const settingsSchema = new Schema<ISettings>({
     general: {
         storeName: { type: String, default: 'My Store' },
@@ -305,7 +335,8 @@ const settingsSchema = new Schema<ISettings>({
     },
     content: {
         heroSlides: { type: [heroSlideSchema], default: [] },
-        promotionCards: { type: [promotionCardSchema], default: [] }
+        promotionCards: { type: [promotionCardSchema], default: [] },
+        productVideos: { type: [productVideoSchema], default: [] }
     }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
