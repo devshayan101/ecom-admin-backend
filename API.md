@@ -668,12 +668,38 @@ Validate a coupon code against a cart subtotal.
   ```
 - **Errors**: `400 Bad Request` if coupon is invalid, expired, inactive, usage-limited, or subtotal is below `min_order_amount`.
 
+#### `PUT /settings/content`
+Update storefront homepage content settings (Hero slides, Promotion cards, Product Shorts). Requires `settings:write` permission.
+- **Request Body**:
+  ```json
+  {
+    "heroSlides": [ ... ],
+    "promotionCards": [ ... ],
+    "productVideos": [
+      {
+        "id": "vid-1",
+        "title": "Vitamin C Glow Routine",
+        "category": "skincare",
+        "videoUrl": "https://cloudfront.net/video.mp4",
+        "thumbnail": "https://cloudfront.net/thumb.jpg",
+        "views": "12.4K",
+        "likes": 843,
+        "duration": "0:15",
+        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+        "active": true,
+        "sortOrder": 0
+      }
+    ]
+  }
+  ```
+- **Response**: `200 OK` with updated settings object.
+
 #### `GET /storefront/settings`
-Fetch public storefront configuration (tax rules, country/state lists, currency, and homepage content slides/cards).
+Fetch public storefront configuration (tax rules, country/state lists, currency, homepage content slides/cards, and active product short videos).
 - **Behavior**: 
   - When shipping is enabled globally, `countriesConfig` and `taxRules` are dynamically filtered to return only countries and states covered by active shipping zones.
-  - `content.heroSlides` and `content.promotionCards` are filtered to return active items (`active !== false`) sorted by `sortOrder`.
-- **Response**: `200 OK` with `{ "taxes": { ... }, "general": { "currency": "INR" }, "content": { "heroSlides": [...], "promotionCards": [...] } }`.
+  - `content.heroSlides`, `content.promotionCards`, and `content.productVideos` are filtered to return active items (`active !== false`) sorted by `sortOrder`.
+- **Response**: `200 OK` with `{ "taxes": { ... }, "general": { "currency": "INR" }, "content": { "heroSlides": [...], "promotionCards": [...], "productVideos": [...] } }`.
 
 #### `POST /storefront/shipping/rates`
 Calculate available shipping rates based on destination address, cart weight, and subtotal.

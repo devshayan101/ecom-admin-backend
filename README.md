@@ -15,7 +15,7 @@ A robust backend for the Ecommerce Admin system, built with Hono, TypeScript, an
 - **Validation**: Zod (Route boundary validation for Settings & APIs)
 - **Authentication**: JWT (RS256)
 - **Shipping Engine**: Dynamic zone matching with active shipping zone checkout filtering and custom rate delivery times
-- **Homepage Content Management**: Admin-controlled Hero Carousel slides and Promotion Grid cards managed via singleton settings
+- **Homepage Content Management**: Admin-controlled Hero Carousel slides, Promotion Grid cards, and Trending Product Video Shorts managed via singleton settings with CloudFront media uploads.
 - **Dynamic Specifications, Variations & FAQs**: Supports dynamic specifications (Highlights, About This Item, Specs Sheets), custom product-level variant categories (Color, Size) defined on the fly, and collapsible product FAQs with conditional storefront rendering.
 - **Coupon Code & Discount Management**: Full promotional discount system supporting percentage and fixed discounts, minimum order constraints, max discount caps, date validity windows, total usage limits, and real-time storefront cart drawer & checkout validation.
 

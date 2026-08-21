@@ -191,7 +191,7 @@ settings.put('/payments', requirePermission('settings:write'), async (c) => {
     return c.json(toPublicSettings(data));
 });
 
-settings.post('/content/upload-url', requirePermission('settings:write'), async (c) => {
+settings.post('/content/upload-url', requirePermission('settings:read'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const contentType = body.content_type || body.contentType || 'image/jpeg';
     const productService = await import('../services/productService');
@@ -199,7 +199,7 @@ settings.post('/content/upload-url', requirePermission('settings:write'), async 
     return c.json(result);
 });
 
-settings.post('/upload-url', requirePermission('settings:write'), async (c) => {
+settings.post('/upload-url', requirePermission('settings:read'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const contentType = body.content_type || body.contentType || 'image/jpeg';
     const productService = await import('../services/productService');
