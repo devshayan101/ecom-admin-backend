@@ -168,10 +168,11 @@ const productVideoZodSchema = z.object({
     id: z.string().min(1, 'ID is required'),
     title: z.string().min(1, 'Title is required'),
     category: z.string().min(1, 'Category is required'),
-    videoUrl: z.string().min(1, 'Video URL is required'),
-    thumbnail: z.string().min(1, 'Thumbnail is required'),
-    views: z.string().optional().default('1.2K'),
-    likes: z.number().optional().default(120),
+    videoUrl: z.string().optional().default(''),
+    youtubeVideoId: z.string().optional().default(''),
+    thumbnail: z.string().optional().default(''),
+    views: z.string().optional().default('0'),
+    likes: z.number().optional().default(0),
     duration: z.string().optional().default('0:15'),
     productId: z.string().optional().default(''),
     active: z.boolean().default(true),
@@ -191,7 +192,7 @@ settings.put('/payments', requirePermission('settings:write'), async (c) => {
     return c.json(toPublicSettings(data));
 });
 
-settings.post('/content/upload-url', requirePermission('settings:read'), async (c) => {
+settings.post('/content/upload-url', requirePermission('settings:write'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const contentType = body.content_type || body.contentType || 'image/jpeg';
     const productService = await import('../services/productService');
@@ -199,7 +200,7 @@ settings.post('/content/upload-url', requirePermission('settings:read'), async (
     return c.json(result);
 });
 
-settings.post('/upload-url', requirePermission('settings:read'), async (c) => {
+settings.post('/upload-url', requirePermission('settings:write'), async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const contentType = body.content_type || body.contentType || 'image/jpeg';
     const productService = await import('../services/productService');

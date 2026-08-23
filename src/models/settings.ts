@@ -106,7 +106,6 @@ export interface ISettings extends Document {
     content?: {
         heroSlides: IHeroSlide[];
         promotionCards: IPromotionCard[];
-        productVideos?: IProductVideo[];
     };
     created_at: Date;
     updated_at: Date;
@@ -158,8 +157,9 @@ export interface IProductVideo {
     id: string;
     title: string;
     category: string;
-    videoUrl: string;
-    thumbnail: string;
+    videoUrl?: string;
+    youtubeVideoId?: string;
+    thumbnail?: string;
     views?: string;
     likes?: number;
     duration?: string;
@@ -290,14 +290,15 @@ const productVideoSchema = new Schema<IProductVideo>({
     id: { type: String, required: true },
     title: { type: String, required: true },
     category: { type: String, required: true },
-    videoUrl: { type: String, required: true },
-    thumbnail: { type: String, required: true },
-    views: { type: String, default: "1.2K" },
-    likes: { type: Number, default: 120 },
+    videoUrl: { type: String, default: "" },
+    youtubeVideoId: { type: String, default: "" },
+    thumbnail: { type: String, default: "" },
+    views: { type: String, default: "0" },
+    likes: { type: Number, default: 0 },
     duration: { type: String, default: "0:15" },
     productId: { type: String, default: "" },
     active: { type: Boolean, default: true },
-    sortOrder: { type: Number, default: 0 },
+    sortOrder: { type: Number, default: 0 }
 }, { _id: false });
 
 const settingsSchema = new Schema<ISettings>({

@@ -190,8 +190,12 @@ export async function getSettings(): Promise<ISettings> {
     }
 
     if (!settings.content) {
-        settings.content = { heroSlides: DEFAULT_HERO_SLIDES as any, promotionCards: DEFAULT_PROMOTION_CARDS as any };
+        settings.content = { heroSlides: DEFAULT_HERO_SLIDES as any, promotionCards: DEFAULT_PROMOTION_CARDS as any, productVideos: DEFAULT_PRODUCT_VIDEOS as any };
         settings.markModified('content');
+        needsSave = true;
+    } else if (!settings.content.productVideos) {
+        settings.content.productVideos = DEFAULT_PRODUCT_VIDEOS as any;
+        settings.markModified('content.productVideos');
         needsSave = true;
     }
 
@@ -238,10 +242,11 @@ export async function updateGeneralSettings(data: {
     }
     if (content !== undefined) {
         if (!settings.content) {
-            settings.content = { heroSlides: [], promotionCards: [] };
+            settings.content = { heroSlides: [], promotionCards: [], productVideos: [] };
         }
         if (content.heroSlides !== undefined) settings.content.heroSlides = content.heroSlides;
         if (content.promotionCards !== undefined) settings.content.promotionCards = content.promotionCards;
+        if (content.productVideos !== undefined) settings.content.productVideos = content.productVideos;
     }
     await settings.save();
     return settings;
@@ -361,48 +366,6 @@ export async function updatePaymentSettings(data: {
     await settings.save();
     return settings;
 }
-
-export const DEFAULT_PRODUCT_VIDEOS = [
-    {
-        id: 'vid-1',
-        title: 'Vitamin C Serum Daily Glow Routine',
-        category: 'skincare',
-        videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        thumbnail: 'https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=600&auto=format&fit=crop',
-        views: '12.4K',
-        likes: 843,
-        duration: '0:15',
-        productId: '',
-        active: true,
-        sortOrder: 0
-    },
-    {
-        id: 'vid-2',
-        title: 'Luxury Lipstick Matte Shades swatch',
-        category: 'cosmetics',
-        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
-        thumbnail: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=600&auto=format&fit=crop',
-        views: '8.9K',
-        likes: 624,
-        duration: '0:12',
-        productId: '',
-        active: true,
-        sortOrder: 1
-    },
-    {
-        id: 'vid-3',
-        title: 'Summer Fashion Lookbook 2026',
-        category: 'women',
-        videoUrl: 'https://www.w3schools.com/html/movie.mp4',
-        thumbnail: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=600&auto=format&fit=crop',
-        views: '15.2K',
-        likes: 1204,
-        duration: '0:20',
-        productId: '',
-        active: true,
-        sortOrder: 2
-    }
-];
 
 export async function updateContentSettings(data: {
     heroSlides?: any[];

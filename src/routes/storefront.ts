@@ -84,6 +84,7 @@ storefront.get('/settings', async (c) => {
 
     const rawHeroSlides = (settings as any).content?.heroSlides || [];
     const rawPromotionCards = (settings as any).content?.promotionCards || [];
+    const rawProductVideos = (settings as any).content?.productVideos || [];
 
     const heroSlides = rawHeroSlides
         .filter((s: any) => s.active !== false)
@@ -91,6 +92,10 @@ storefront.get('/settings', async (c) => {
 
     const promotionCards = rawPromotionCards
         .filter((c: any) => c.active !== false)
+        .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+    const productVideos = rawProductVideos
+        .filter((v: any) => v.active !== false)
         .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
     return c.json({
@@ -104,7 +109,8 @@ storefront.get('/settings', async (c) => {
         },
         content: {
             heroSlides,
-            promotionCards
+            promotionCards,
+            productVideos
         }
     });
 });
