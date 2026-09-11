@@ -14,13 +14,11 @@ export function getRedisOptions(): RedisOptions {
             db: parsed.pathname ? parseInt(parsed.pathname.substring(1) || '0', 10) : 0,
             tls: parsed.protocol === 'rediss:' ? {} : undefined,
             maxRetriesPerRequest: null,
-            enableOfflineQueue: false,
             connectTimeout: 2000,
         };
     } catch (e) {
         return {
             maxRetriesPerRequest: null,
-            enableOfflineQueue: false,
             connectTimeout: 2000,
         };
     }
@@ -30,7 +28,6 @@ export function getRedis(): Redis {
     if (!redis) {
         redis = new Redis(config.redisUrl, {
             maxRetriesPerRequest: null,
-            enableOfflineQueue: false,
             connectTimeout: 2000,
         });
         redis.on('error', (err) => {

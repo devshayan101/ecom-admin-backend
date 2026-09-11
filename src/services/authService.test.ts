@@ -114,7 +114,7 @@ describe('AuthService', () => {
             await logout(decoded.jti, sessionId);
 
             // JTI should be in revocation set
-            expect(await redisMock.get(`revoked_jti:mocked_jti`)).toBe('1');
+            expect(await redisMock.get(`revoked_jti:${decoded.jti}`)).toBe('1');
             // Refresh token session should be deleted
             expect(await redisMock.get(`session:${sessionId}`)).toBeNull();
         });
