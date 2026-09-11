@@ -122,6 +122,8 @@ export const DEFAULT_PROMOTION_CARDS = [
     }
 ];
 
+export const DEFAULT_PRODUCT_VIDEOS = [];
+
 export async function getSettings(): Promise<ISettings> {
     const settings = await SettingsModel.findOneAndUpdate(
         { _id: SETTINGS_ID },

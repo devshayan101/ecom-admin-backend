@@ -106,6 +106,7 @@ export interface ISettings extends Document {
     content?: {
         heroSlides: IHeroSlide[];
         promotionCards: IPromotionCard[];
+        productVideos?: IProductVideo[];
     };
     created_at: Date;
     updated_at: Date;
